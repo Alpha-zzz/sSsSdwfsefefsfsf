@@ -7315,16 +7315,29 @@ function Library:CreateWindow(WindowInfo)
                 Parent       = TopBar,
             })
             New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = CloseBtn })
+            -- Visible border outline so the button is recognizable against any background
+            local CloseBtnStroke = New("UIStroke", {
+                Color = Color3.fromRGB(255, 255, 255),
+                Transparency = 0.5,
+                Thickness = 1.2,
+                Parent = CloseBtn,
+            })
             CloseBtn.MouseEnter:Connect(function()
-                -- Show background on hover so the button is clearly clickable
+                -- Show solid background on hover, hide stroke
                 TweenService:Create(CloseBtn, TweenInfo.new(0.15), {
                     BackgroundTransparency = 0, TextTransparency = 0
                 }):Play()
+                TweenService:Create(CloseBtnStroke, TweenInfo.new(0.15), {
+                    Transparency = 1
+                }):Play()
             end)
             CloseBtn.MouseLeave:Connect(function()
-                -- Return to fully transparent when not hovered
+                -- Return to transparent background, show stroke again
                 TweenService:Create(CloseBtn, TweenInfo.new(0.15), {
                     BackgroundTransparency = 1, TextTransparency = 0.2
+                }):Play()
+                TweenService:Create(CloseBtnStroke, TweenInfo.new(0.15), {
+                    Transparency = 0.5
                 }):Play()
             end)
             CloseBtn.MouseButton1Click:Connect(function()
