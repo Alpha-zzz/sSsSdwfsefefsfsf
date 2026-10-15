@@ -1676,6 +1676,7 @@ function Library:AddDraggableLabel(Text: string)
     local Label = New("TextLabel", {
         AutomaticSize = Enum.AutomaticSize.XY,
         BackgroundColor3 = "BackgroundColor",
+        BackgroundTransparency = 1,
         Size = UDim2.fromOffset(0, 0),
         Position = UDim2.fromOffset(6, 6),
         Text = Text,
@@ -1725,6 +1726,7 @@ function Library:AddDraggableButton(Text: string, Func, ExcludeScaling: boolean?
 
     local Button = New("TextButton", {
         BackgroundColor3 = "BackgroundColor",
+        BackgroundTransparency = 1,
         Position = UDim2.fromOffset(6, 6),
         TextSize = 16,
         ZIndex = 10,
@@ -1769,6 +1771,7 @@ function Library:AddDraggableMenu(Name: string)
     local Holder = New("Frame", {
         AutomaticSize = Enum.AutomaticSize.XY,
         BackgroundColor3 = "BackgroundColor",
+        BackgroundTransparency = 1,
         Position = UDim2.fromOffset(6, 6),
         Size = UDim2.fromOffset(0, 0),
         ZIndex = 10,
@@ -2408,6 +2411,7 @@ do
 
         local Picker = New("TextButton", {
             BackgroundColor3 = "MainColor",
+            BackgroundTransparency = 1,
             Size = UDim2.fromOffset(18, 18),
             Text = KeyPicker.Value,
             TextSize = 14,
@@ -3127,6 +3131,7 @@ do
 
         local HueBox = New("TextBox", {
             BackgroundColor3 = "MainColor",
+            BackgroundTransparency = 1,
             ClearTextOnFocus = false,
             Size = UDim2.fromScale(1, 1),
             Text = "#??????",
@@ -3149,6 +3154,7 @@ do
 
         local RgbBox = New("TextBox", {
             BackgroundColor3 = "MainColor",
+            BackgroundTransparency = 1,
             ClearTextOnFocus = false,
             Size = UDim2.fromScale(1, 1),
             Text = "?, ?, ?",
@@ -3671,6 +3677,7 @@ do
             local Base = New("TextButton", {
                 Active = not Button.Disabled,
                 BackgroundColor3 = Button.Disabled and "BackgroundColor" or "MainColor",
+                BackgroundTransparency = 1,
                 Size = UDim2.fromScale(1, 1),
                 Text = Button.Text,
                 TextSize = 14,
@@ -4381,6 +4388,7 @@ do
         local Box = New("TextBox", {
             AnchorPoint = Vector2.new(0, 1),
             BackgroundColor3 = "MainColor",
+            BackgroundTransparency = 1,
             ClearTextOnFocus = not Input.Disabled and Input.ClearTextOnFocus,
             PlaceholderText = Input.Placeholder,
             Position = UDim2.fromScale(0, 1),
@@ -4574,6 +4582,7 @@ do
             Active = not Slider.Disabled,
             AnchorPoint = Vector2.new(0, 1),
             BackgroundColor3 = "MainColor",
+            BackgroundTransparency = 0.65,
             Position = UDim2.fromScale(0, 1),
             Size = UDim2.new(1, 0, 0, 15),
             Text = "",
@@ -6140,6 +6149,7 @@ do
         do
             DepGroupboxContainer = New("Frame", {
                 BackgroundColor3 = "BackgroundColor",
+                BackgroundTransparency = 1,
                 Size = UDim2.fromScale(1, 0),
                 Visible = false,
                 Parent = BoxHolder,
@@ -7159,6 +7169,7 @@ function Library:CreateWindow(WindowInfo)
 
         SearchBox = New("TextBox", {
             BackgroundColor3 = "MainColor",
+            BackgroundTransparency = 1,
             PlaceholderText = "Search",
             Size = UDim2.new(0, 200, 1, 0), -- ★ 横幅を200pxに固定
             TextScaled = true,
@@ -7205,6 +7216,7 @@ function Library:CreateWindow(WindowInfo)
         if not WindowInfo.DisableNotificationBell then
             local BellButton = New("TextButton", {
                 BackgroundColor3 = "MainColor",
+                BackgroundTransparency = 1,
                 Size = UDim2.fromOffset(28, 28),
                 Text = "",
                 Parent = RightWrapper,
@@ -7391,6 +7403,7 @@ function Library:CreateWindow(WindowInfo)
         Tabs = New("ScrollingFrame", {
             AutomaticCanvasSize = Enum.AutomaticSize.Y,
             BackgroundColor3 = "BackgroundColor",
+            BackgroundTransparency = 1,
             CanvasSize = UDim2.fromScale(0, 0),
             Position = UDim2.fromOffset(0, 49),
             ScrollBarThickness = 0,
@@ -7407,6 +7420,7 @@ function Library:CreateWindow(WindowInfo)
             BackgroundColor3 = function()
                 return Library:GetBetterColor(Library.Scheme.BackgroundColor, 1)
             end,
+            BackgroundTransparency = 1,
             Name = "Container",
             BorderSizePixel = 0,
             Position = UDim2.new(1, 0, 0, 49),
@@ -7733,6 +7747,7 @@ function Library:CreateWindow(WindowInfo)
         do
             WarningBox = New("Frame", {
                 BackgroundColor3 = "BackgroundColor",
+                BackgroundTransparency = 1,
                 Position = UDim2.fromOffset(2, 0),
                 Size = UDim2.new(1, -5, 0, 0),
                 Parent = WarningBoxHolder,
@@ -7950,6 +7965,7 @@ function Library:CreateWindow(WindowInfo)
             do
                 GroupboxHolder = New("Frame", {
                     BackgroundColor3 = "BackgroundColor",
+                    BackgroundTransparency = 1,
                     Size = UDim2.fromScale(1, 0),
                     Parent = BoxHolder,
                 })
@@ -8068,6 +8084,7 @@ function Library:CreateWindow(WindowInfo)
             do
                 TabboxHolder = New("Frame", {
                     BackgroundColor3 = "BackgroundColor",
+                    BackgroundTransparency = 1,
                     Size = UDim2.fromScale(1, 0),
                     Parent = BoxHolder,
                 })
@@ -8117,7 +8134,7 @@ function Library:CreateWindow(WindowInfo)
 
                 local Button = New("TextButton", {
                     BackgroundColor3 = "MainColor",
-                    BackgroundTransparency = 0,
+                    BackgroundTransparency = 1, -- Start transparent; Tab:Show() keeps it 1 when selected
                     Size = UDim2.fromOffset(0, 34),
                     Text = "",
                     Parent = TabboxButtons,
@@ -8134,6 +8151,7 @@ function Library:CreateWindow(WindowInfo)
                 local BottomCover = New("Frame", {
                     Name = "BottomCover",
                     BackgroundColor3 = "MainColor",
+                    BackgroundTransparency = 1, -- Tab:Show()/Hide() both set this to 1; start transparent
                     BorderSizePixel = 0,
                     Position = UDim2.new(0, 0, 1, -WindowInfo.CornerRadius),
                     Size = UDim2.new(1, 0, 0, WindowInfo.CornerRadius),
@@ -8143,6 +8161,7 @@ function Library:CreateWindow(WindowInfo)
                 local LeftCover = New("Frame", {
                     Name = "LeftCover",
                     BackgroundColor3 = "MainColor",
+                    BackgroundTransparency = 1, -- Tab:Show()/Hide() both set this to 1; start transparent
                     BorderSizePixel = 0,
                     Position = UDim2.new(0, 0, 0, 0),
                     Size = UDim2.new(0, WindowInfo.CornerRadius, 1, 0),
@@ -8154,6 +8173,7 @@ function Library:CreateWindow(WindowInfo)
                     Name = "RightCover",
                     AnchorPoint = Vector2.new(1, 0),
                     BackgroundColor3 = "MainColor",
+                    BackgroundTransparency = 1, -- Tab:Show()/Hide() both set this to 1; start transparent
                     BorderSizePixel = 0,
                     Position = UDim2.new(1, 0, 0, 0),
                     Size = UDim2.new(0, WindowInfo.CornerRadius, 1, 0),
@@ -8263,10 +8283,10 @@ function Library:CreateWindow(WindowInfo)
                 end
 
                 function Tab:Hide()
-                    Button.BackgroundTransparency = 0
-                    BottomCover.BackgroundTransparency = 0
-                    LeftCover.BackgroundTransparency = 0
-                    RightCover.BackgroundTransparency = 0
+                    Button.BackgroundTransparency = 1
+                    BottomCover.BackgroundTransparency = 1
+                    LeftCover.BackgroundTransparency = 1
+                    RightCover.BackgroundTransparency = 1
 
                     ButtonLabel.TextTransparency = 0.5
                     if ButtonIcon then
@@ -8350,7 +8370,7 @@ function Library:CreateWindow(WindowInfo)
             end
 
             TweenService:Create(TabButton, Library.TweenInfo, {
-                BackgroundTransparency = 0,
+                BackgroundTransparency = 0.8,
             }):Play()
             TweenService:Create(TabLabel, Library.TweenInfo, {
                 TextTransparency = 0,
@@ -8533,6 +8553,7 @@ function Library:CreateWindow(WindowInfo)
 
             local Box = New("TextBox", {
                 BackgroundColor3 = "MainColor",
+                BackgroundTransparency = 1,
                 PlaceholderText = "Key",
                 Size = UDim2.new(1, -71, 1, 0),
                 TextSize = 14,
@@ -8559,6 +8580,7 @@ function Library:CreateWindow(WindowInfo)
             local Button = New("TextButton", {
                 AnchorPoint = Vector2.new(1, 0),
                 BackgroundColor3 = "MainColor",
+                BackgroundTransparency = 1,
                 Position = UDim2.fromScale(1, 0),
                 Size = UDim2.new(0, 63, 1, 0),
                 Text = "Execute",
@@ -8615,7 +8637,7 @@ function Library:CreateWindow(WindowInfo)
             end
 
             TweenService:Create(TabButton, Library.TweenInfo, {
-                BackgroundTransparency = 0,
+                BackgroundTransparency = 0.8,
             }):Play()
             TweenService:Create(TabLabel, Library.TweenInfo, {
                 TextTransparency = 0,
@@ -10310,103 +10332,17 @@ Library:GiveSignal(Players.PlayerRemoving:Connect(OnPlayerChange))
 Library:GiveSignal(Teams.ChildAdded:Connect(OnTeamChange))
 Library:GiveSignal(Teams.ChildRemoved:Connect(OnTeamChange))
 
--- ▼▼ Added: library-level transparency toggle (called by the main script) ▼▼
+-- ▼▼ Added: toggle the outer window frame transparency with the background image ▼▼
+-- All sub-panels (sidebar, groupboxes, buttons, inputs, slider tracks, etc.) are
+-- already transparent from their New() construction calls above, so no further
+-- enumeration is needed here. Dropdowns are never touched and stay fully opaque.
 function Library:SetPanelTransparency(enabled)
-    local trans = enabled and 1 or 0
-
     if not Library.ScreenGui then return end
     local MainFrame = Library.ScreenGui:FindFirstChild("Main")
     if not MainFrame then return end
-
-    -- 1. Main window frame + left sidebar ScrollingFrame (Tabs rail)
-    MainFrame.BackgroundTransparency = trans
-    for _, child in ipairs(MainFrame:GetChildren()) do
-        if child:IsA("ScrollingFrame") then
-            pcall(function() child.BackgroundTransparency = trans end)
-        end
-    end
-
-    -- 2. Groupbox / Tabbox / DependencyGroupbox holder frames
-    for _, Tab in pairs(Library.Tabs) do
-        if typeof(Tab) ~= "table" then continue end
-
-        for _, Groupbox in pairs(Tab.Groupboxes or {}) do
-            if Groupbox.Holder then
-                pcall(function() Groupbox.Holder.BackgroundTransparency = trans end)
-            end
-        end
-
-        for _, Tabbox in pairs(Tab.Tabboxes or {}) do
-            if Tabbox.Holder then
-                pcall(function() Tabbox.Holder.BackgroundTransparency = trans end)
-            end
-        end
-
-        for _, DepGroup in pairs(Tab.DependencyGroupboxes or {}) do
-            if DepGroup.Holder then
-                pcall(function() DepGroup.Holder.BackgroundTransparency = trans end)
-            end
-        end
-    end
-
-    -- 3. Button base frames (Btn.Base — TextButton with BackgroundColor3 = MainColor/BackgroundColor)
-    for _, Btn in pairs(Library.Buttons) do
-        if Btn.Base then
-            pcall(function() Btn.Base.BackgroundTransparency = trans end)
-        end
-        if Btn.SubButton and Btn.SubButton.Base then
-            pcall(function() Btn.SubButton.Base.BackgroundTransparency = trans end)
-        end
-    end
-
-    -- 4. Slider tracks and Input text boxes via Registry
-    --    (Registry maps every GUI instance to its theme property keys)
-    --    Dropdowns are intentionally excluded — their BackgroundColor3 key
-    --    is also "MainColor" but they live inside a named Dropdown container.
-    for Inst, Props in pairs(Library.Registry) do
-        if typeof(Inst) ~= "Instance" or not Inst.Parent then continue end
-
-        -- Skip anything that lives inside a Dropdown
-        local p = Inst.Parent
-        if p and (p.Name:find("Dropdown") or Inst.Name:find("Dropdown")) then continue end
-
-        local bgKey = Props.BackgroundColor3
-        if bgKey ~= "MainColor" and bgKey ~= "BackgroundColor" then continue end
-
-        if Inst:IsA("TextButton") then
-            -- Slider track: contains a "Fill" child (the accent-coloured progress bar)
-            if Inst:FindFirstChild("Fill") then
-                pcall(function() Inst.BackgroundTransparency = trans end)
-            end
-            -- !! Sidebar tab buttons (TabButton) are intentionally left alone !!
-            -- Their Tab:Show() tween drives BackgroundTransparency to produce the
-            -- active-tab highlight; touching them here would break that animation.
-
-        elseif Inst:IsA("TextBox") then
-            -- Search box at the top + Input element boxes
-            pcall(function() Inst.BackgroundTransparency = trans end)
-        end
-    end
-
-    -- 5. Bell notification button (TextButton, BackgroundColor3 = "MainColor",
-    --    no "Fill" child — so it doesn't match the slider guard above,
-    --    but it also isn't a tab button, so target it via Registry directly)
-    for Inst, Props in pairs(Library.Registry) do
-        if typeof(Inst) ~= "Instance" or not Inst.Parent then continue end
-        if Props.BackgroundColor3 ~= "MainColor" then continue end
-        if not Inst:IsA("TextButton") then continue end
-        -- Bell / search-bar-adjacent small icon buttons: no "Fill", no "BottomCover"
-        if not Inst:FindFirstChild("Fill") and not Inst:FindFirstChild("BottomCover") then
-            -- Skip sidebar tab buttons: they are direct children of the Tabs ScrollingFrame
-            local par = Inst.Parent
-            if par and (par:IsA("ScrollingFrame") or par.Name == "Tabs" or par.Name == "TabboxButtons") then
-                continue
-            end
-            -- Skip Dropdown-related buttons
-            if par and (par.Name:find("Dropdown") or Inst.Name:find("Dropdown")) then continue end
-            pcall(function() Inst.BackgroundTransparency = trans end)
-        end
-    end
+    -- enabled = true  → background image is active, hide the solid window tint
+    -- enabled = false → background image is off, restore the solid window tint
+    MainFrame.BackgroundTransparency = enabled and 1 or 0
 end
 -- ▲▲ End of SetPanelTransparency ▲▲
 
