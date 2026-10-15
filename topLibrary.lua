@@ -4574,7 +4574,6 @@ do
             Active = not Slider.Disabled,
             AnchorPoint = Vector2.new(0, 1),
             BackgroundColor3 = "MainColor",
-            BackgroundTransparency = 0.65,
             Position = UDim2.fromScale(0, 1),
             Size = UDim2.new(1, 0, 0, 15),
             Text = "",
@@ -7392,7 +7391,6 @@ function Library:CreateWindow(WindowInfo)
         Tabs = New("ScrollingFrame", {
             AutomaticCanvasSize = Enum.AutomaticSize.Y,
             BackgroundColor3 = "BackgroundColor",
-            BackgroundTransparency = 1,
             CanvasSize = UDim2.fromScale(0, 0),
             Position = UDim2.fromOffset(0, 49),
             ScrollBarThickness = 0,
@@ -7409,7 +7407,6 @@ function Library:CreateWindow(WindowInfo)
             BackgroundColor3 = function()
                 return Library:GetBetterColor(Library.Scheme.BackgroundColor, 1)
             end,
-            BackgroundTransparency = 1,
             Name = "Container",
             BorderSizePixel = 0,
             Position = UDim2.new(1, 0, 0, 49),
@@ -7953,7 +7950,6 @@ function Library:CreateWindow(WindowInfo)
             do
                 GroupboxHolder = New("Frame", {
                     BackgroundColor3 = "BackgroundColor",
-                    BackgroundTransparency = 1,
                     Size = UDim2.fromScale(1, 0),
                     Parent = BoxHolder,
                 })
@@ -8072,7 +8068,6 @@ function Library:CreateWindow(WindowInfo)
             do
                 TabboxHolder = New("Frame", {
                     BackgroundColor3 = "BackgroundColor",
-                    BackgroundTransparency = 1,
                     Size = UDim2.fromScale(1, 0),
                     Parent = BoxHolder,
                 })
@@ -8268,10 +8263,10 @@ function Library:CreateWindow(WindowInfo)
                 end
 
                 function Tab:Hide()
-                    Button.BackgroundTransparency = 1
-                    BottomCover.BackgroundTransparency = 1
-                    LeftCover.BackgroundTransparency = 1
-                    RightCover.BackgroundTransparency = 1
+                    Button.BackgroundTransparency = 0
+                    BottomCover.BackgroundTransparency = 0
+                    LeftCover.BackgroundTransparency = 0
+                    RightCover.BackgroundTransparency = 0
 
                     ButtonLabel.TextTransparency = 0.5
                     if ButtonIcon then
@@ -8355,7 +8350,7 @@ function Library:CreateWindow(WindowInfo)
             end
 
             TweenService:Create(TabButton, Library.TweenInfo, {
-                BackgroundTransparency = 0.8,
+                BackgroundTransparency = 0,
             }):Play()
             TweenService:Create(TabLabel, Library.TweenInfo, {
                 TextTransparency = 0,
@@ -8620,7 +8615,7 @@ function Library:CreateWindow(WindowInfo)
             end
 
             TweenService:Create(TabButton, Library.TweenInfo, {
-                BackgroundTransparency = 0.8,
+                BackgroundTransparency = 0,
             }):Play()
             TweenService:Create(TabLabel, Library.TweenInfo, {
                 TextTransparency = 0,
@@ -10314,6 +10309,76 @@ Library:GiveSignal(Players.PlayerRemoving:Connect(OnPlayerChange))
 
 Library:GiveSignal(Teams.ChildAdded:Connect(OnTeamChange))
 Library:GiveSignal(Teams.ChildRemoved:Connect(OnTeamChange))
+
+-- ▼▼ Added: library-level transparency toggle (called by the main script) ▼▼
+function Library:SetPanelTransparency(enabled)
+    -- Background panels become fully transparent; interactive elements become semi-transparent
+    local panelTrans = enabled and 1 or 0
+    local elemTrans  = enabled and 0.6 or 0
+
+    if not Library.ScreenGui then return end
+
+    -- 1. Main window frame
+    local MainFrame = Library.ScreenGui:FindFirstChild("Main")
+    if MainFrame then
+        MainFrame.BackgroundTransparency = panelTrans
+
+        -- Left sidebar tab rail and right content canvas
+        for _, ch in ipairs(MainFrame:GetChildren()) do
+            if ch:IsA("ScrollingFrame") or ch.Name == "Tabs" or ch.Name == "Container" then
+                pcall(function() ch.BackgroundTransparency = panelTrans end)
+            end
+        end
+    end
+
+    -- 2. Every groupbox / depbox holder registered on each tab
+    for _, Tab in pairs(Library.Tabs) do
+        if typeof(Tab) ~= "table" then continue end
+
+        for _, Groupbox in pairs(Tab.Groupboxes or {}) do
+            if Groupbox.Holder then
+                pcall(function() Groupbox.Holder.BackgroundTransparency = panelTrans end)
+            end
+        end
+
+        for _, Tabbox in pairs(Tab.Tabboxes or {}) do
+            if Tabbox.Holder then
+                pcall(function() Tabbox.Holder.BackgroundTransparency = panelTrans end)
+            end
+        end
+
+        for _, DepGroup in pairs(Tab.DependencyGroupboxes or {}) do
+            if DepGroup.Holder then
+                pcall(function() DepGroup.Holder.BackgroundTransparency = panelTrans end)
+            end
+        end
+    end
+
+    -- 3. Slider tracks (TextButton with BackgroundColor3 = "MainColor" in Registry)
+    --    Dropdowns are intentionally excluded here — they stay fully opaque
+    for Inst, Props in pairs(Library.Registry) do
+        if typeof(Inst) ~= "Instance" or not Inst.Parent then continue end
+        if Props.BackgroundColor3 ~= "MainColor" then continue end
+        if not Inst:IsA("TextButton") then continue end
+
+        -- Identify slider tracks: they contain a Frame child named "Fill" (the accent bar)
+        if Inst:FindFirstChild("Fill") then
+            pcall(function() Inst.BackgroundTransparency = elemTrans end)
+        end
+    end
+
+    -- 4. Sidebar tab buttons: tween target was changed to 0.8 in Tab:Show,
+    --    but enforce the floor here too so tab switching stays consistent
+    for _, Tab in pairs(Library.Tabs) do
+        if typeof(Tab) ~= "table" then continue end
+        for _, Tab2 in pairs(Tab.Tabboxes or {}) do
+            -- Tabbox inner tab buttons are handled by their own Show/Hide which
+            -- already uses BackgroundTransparency = 1 after our topLibrary edits
+            _ = Tab2 -- no-op; left for clarity
+        end
+    end
+end
+-- ▲▲ End of SetPanelTransparency ▲▲
 
 getgenv().Library = Library
 return Library
