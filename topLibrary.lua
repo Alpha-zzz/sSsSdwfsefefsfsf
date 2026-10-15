@@ -3962,6 +3962,7 @@ do
 
         local Checkbox = New("Frame", {
             BackgroundColor3 = "MainColor",
+            BackgroundTransparency = 1, -- Transparent background; outline (UIStroke) and checkmark remain visible
             Size = UDim2.fromScale(1, 1),
             SizeConstraint = Enum.SizeConstraint.RelativeYY,
             Parent = Button,
