@@ -7303,7 +7303,7 @@ function Library:CreateWindow(WindowInfo)
             local CloseBtn = New("TextButton", {
                 AnchorPoint  = Vector2.new(1, 0.5),
                 BackgroundColor3 = "MainColor",
-                BackgroundTransparency = 0.4,
+                BackgroundTransparency = 1,
                 Position     = UDim2.new(1, -10, 0.5, 0),
                 Size         = UDim2.fromOffset(28, 28),
                 SizeConstraint = Enum.SizeConstraint.RelativeYY,
@@ -7316,13 +7316,15 @@ function Library:CreateWindow(WindowInfo)
             })
             New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = CloseBtn })
             CloseBtn.MouseEnter:Connect(function()
+                -- Show background on hover so the button is clearly clickable
                 TweenService:Create(CloseBtn, TweenInfo.new(0.15), {
                     BackgroundTransparency = 0, TextTransparency = 0
                 }):Play()
             end)
             CloseBtn.MouseLeave:Connect(function()
+                -- Return to fully transparent when not hovered
                 TweenService:Create(CloseBtn, TweenInfo.new(0.15), {
-                    BackgroundTransparency = 0.4, TextTransparency = 0.2
+                    BackgroundTransparency = 1, TextTransparency = 0.2
                 }):Play()
             end)
             CloseBtn.MouseButton1Click:Connect(function()
