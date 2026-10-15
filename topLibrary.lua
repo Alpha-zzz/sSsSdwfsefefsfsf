@@ -10312,73 +10312,104 @@ Library:GiveSignal(Teams.ChildRemoved:Connect(OnTeamChange))
 
 -- ▼▼ Added: library-level transparency toggle (called by the main script) ▼▼
 function Library:SetPanelTransparency(enabled)
-    -- Background panels become fully transparent; interactive elements become semi-transparent
-    local panelTrans = enabled and 1 or 0
-    local elemTrans  = enabled and 0.6 or 0
+    local trans = enabled and 1 or 0
 
     if not Library.ScreenGui then return end
-
-    -- 1. Main window frame
     local MainFrame = Library.ScreenGui:FindFirstChild("Main")
-    if MainFrame then
-        MainFrame.BackgroundTransparency = panelTrans
+    if not MainFrame then return end
 
-        -- Left sidebar tab rail and right content canvas
-        for _, ch in ipairs(MainFrame:GetChildren()) do
-            if ch:IsA("ScrollingFrame") or ch.Name == "Tabs" or ch.Name == "Container" then
-                pcall(function() ch.BackgroundTransparency = panelTrans end)
-            end
+    -- 1. Main window frame + left sidebar ScrollingFrame (Tabs rail)
+    MainFrame.BackgroundTransparency = trans
+    for _, child in ipairs(MainFrame:GetChildren()) do
+        if child:IsA("ScrollingFrame") then
+            pcall(function() child.BackgroundTransparency = trans end)
         end
     end
 
-    -- 2. Every groupbox / depbox holder registered on each tab
+    -- 2. Groupbox / Tabbox / DependencyGroupbox holder frames
     for _, Tab in pairs(Library.Tabs) do
         if typeof(Tab) ~= "table" then continue end
 
         for _, Groupbox in pairs(Tab.Groupboxes or {}) do
             if Groupbox.Holder then
-                pcall(function() Groupbox.Holder.BackgroundTransparency = panelTrans end)
+                pcall(function() Groupbox.Holder.BackgroundTransparency = trans end)
             end
         end
 
         for _, Tabbox in pairs(Tab.Tabboxes or {}) do
             if Tabbox.Holder then
-                pcall(function() Tabbox.Holder.BackgroundTransparency = panelTrans end)
+                pcall(function() Tabbox.Holder.BackgroundTransparency = trans end)
             end
         end
 
         for _, DepGroup in pairs(Tab.DependencyGroupboxes or {}) do
             if DepGroup.Holder then
-                pcall(function() DepGroup.Holder.BackgroundTransparency = panelTrans end)
+                pcall(function() DepGroup.Holder.BackgroundTransparency = trans end)
             end
         end
     end
 
-    -- 3. Slider tracks (TextButton with BackgroundColor3 = "MainColor" in Registry)
-    --    Dropdowns are intentionally excluded here — they stay fully opaque
+    -- 3. Button base frames (Btn.Base — TextButton with BackgroundColor3 = MainColor/BackgroundColor)
+    for _, Btn in pairs(Library.Buttons) do
+        if Btn.Base then
+            pcall(function() Btn.Base.BackgroundTransparency = trans end)
+        end
+        if Btn.SubButton and Btn.SubButton.Base then
+            pcall(function() Btn.SubButton.Base.BackgroundTransparency = trans end)
+        end
+    end
+
+    -- 4. Slider tracks and Input text boxes via Registry
+    --    (Registry maps every GUI instance to its theme property keys)
+    --    Dropdowns are intentionally excluded — their BackgroundColor3 key
+    --    is also "MainColor" but they live inside a named Dropdown container.
+    for Inst, Props in pairs(Library.Registry) do
+        if typeof(Inst) ~= "Instance" or not Inst.Parent then continue end
+
+        -- Skip anything that lives inside a Dropdown
+        local p = Inst.Parent
+        if p and (p.Name:find("Dropdown") or Inst.Name:find("Dropdown")) then continue end
+
+        local bgKey = Props.BackgroundColor3
+        if bgKey ~= "MainColor" and bgKey ~= "BackgroundColor" then continue end
+
+        if Inst:IsA("TextButton") then
+            -- Slider track: contains a "Fill" child (the accent-coloured progress bar)
+            if Inst:FindFirstChild("Fill") then
+                pcall(function() Inst.BackgroundTransparency = trans end)
+            end
+            -- !! Sidebar tab buttons (TabButton) are intentionally left alone !!
+            -- Their Tab:Show() tween drives BackgroundTransparency to produce the
+            -- active-tab highlight; touching them here would break that animation.
+
+        elseif Inst:IsA("TextBox") then
+            -- Search box at the top + Input element boxes
+            pcall(function() Inst.BackgroundTransparency = trans end)
+        end
+    end
+
+    -- 5. Bell notification button (TextButton, BackgroundColor3 = "MainColor",
+    --    no "Fill" child — so it doesn't match the slider guard above,
+    --    but it also isn't a tab button, so target it via Registry directly)
     for Inst, Props in pairs(Library.Registry) do
         if typeof(Inst) ~= "Instance" or not Inst.Parent then continue end
         if Props.BackgroundColor3 ~= "MainColor" then continue end
         if not Inst:IsA("TextButton") then continue end
-
-        -- Identify slider tracks: they contain a Frame child named "Fill" (the accent bar)
-        if Inst:FindFirstChild("Fill") then
-            pcall(function() Inst.BackgroundTransparency = elemTrans end)
-        end
-    end
-
-    -- 4. Sidebar tab buttons: tween target was changed to 0.8 in Tab:Show,
-    --    but enforce the floor here too so tab switching stays consistent
-    for _, Tab in pairs(Library.Tabs) do
-        if typeof(Tab) ~= "table" then continue end
-        for _, Tab2 in pairs(Tab.Tabboxes or {}) do
-            -- Tabbox inner tab buttons are handled by their own Show/Hide which
-            -- already uses BackgroundTransparency = 1 after our topLibrary edits
-            _ = Tab2 -- no-op; left for clarity
+        -- Bell / search-bar-adjacent small icon buttons: no "Fill", no "BottomCover"
+        if not Inst:FindFirstChild("Fill") and not Inst:FindFirstChild("BottomCover") then
+            -- Skip sidebar tab buttons: they are direct children of the Tabs ScrollingFrame
+            local par = Inst.Parent
+            if par and (par:IsA("ScrollingFrame") or par.Name == "Tabs" or par.Name == "TabboxButtons") then
+                continue
+            end
+            -- Skip Dropdown-related buttons
+            if par and (par.Name:find("Dropdown") or Inst.Name:find("Dropdown")) then continue end
+            pcall(function() Inst.BackgroundTransparency = trans end)
         end
     end
 end
 -- ▲▲ End of SetPanelTransparency ▲▲
+
 
 getgenv().Library = Library
 return Library
