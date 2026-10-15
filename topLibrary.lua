@@ -7317,9 +7317,9 @@ function Library:CreateWindow(WindowInfo)
             New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = CloseBtn })
             -- Visible border outline so the button is recognizable against any background
             local CloseBtnStroke = New("UIStroke", {
-                Color = Color3.fromRGB(255, 255, 255),
-                Transparency = 0.5,
-                Thickness = 1.2,
+                Color = "OutlineColor",
+                Transparency = 0,
+                Thickness = 1,
                 Parent = CloseBtn,
             })
             CloseBtn.MouseEnter:Connect(function()
