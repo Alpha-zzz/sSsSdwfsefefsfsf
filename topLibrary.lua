@@ -4574,6 +4574,7 @@ do
             Active = not Slider.Disabled,
             AnchorPoint = Vector2.new(0, 1),
             BackgroundColor3 = "MainColor",
+            BackgroundTransparency = 0.65,
             Position = UDim2.fromScale(0, 1),
             Size = UDim2.new(1, 0, 0, 15),
             Text = "",
@@ -7391,6 +7392,7 @@ function Library:CreateWindow(WindowInfo)
         Tabs = New("ScrollingFrame", {
             AutomaticCanvasSize = Enum.AutomaticSize.Y,
             BackgroundColor3 = "BackgroundColor",
+            BackgroundTransparency = 1,
             CanvasSize = UDim2.fromScale(0, 0),
             Position = UDim2.fromOffset(0, 49),
             ScrollBarThickness = 0,
@@ -7407,6 +7409,7 @@ function Library:CreateWindow(WindowInfo)
             BackgroundColor3 = function()
                 return Library:GetBetterColor(Library.Scheme.BackgroundColor, 1)
             end,
+            BackgroundTransparency = 1,
             Name = "Container",
             BorderSizePixel = 0,
             Position = UDim2.new(1, 0, 0, 49),
@@ -7950,6 +7953,7 @@ function Library:CreateWindow(WindowInfo)
             do
                 GroupboxHolder = New("Frame", {
                     BackgroundColor3 = "BackgroundColor",
+                    BackgroundTransparency = 1,
                     Size = UDim2.fromScale(1, 0),
                     Parent = BoxHolder,
                 })
@@ -8068,6 +8072,7 @@ function Library:CreateWindow(WindowInfo)
             do
                 TabboxHolder = New("Frame", {
                     BackgroundColor3 = "BackgroundColor",
+                    BackgroundTransparency = 1,
                     Size = UDim2.fromScale(1, 0),
                     Parent = BoxHolder,
                 })
@@ -8263,10 +8268,10 @@ function Library:CreateWindow(WindowInfo)
                 end
 
                 function Tab:Hide()
-                    Button.BackgroundTransparency = 0
-                    BottomCover.BackgroundTransparency = 0
-                    LeftCover.BackgroundTransparency = 0
-                    RightCover.BackgroundTransparency = 0
+                    Button.BackgroundTransparency = 1
+                    BottomCover.BackgroundTransparency = 1
+                    LeftCover.BackgroundTransparency = 1
+                    RightCover.BackgroundTransparency = 1
 
                     ButtonLabel.TextTransparency = 0.5
                     if ButtonIcon then
@@ -8350,7 +8355,7 @@ function Library:CreateWindow(WindowInfo)
             end
 
             TweenService:Create(TabButton, Library.TweenInfo, {
-                BackgroundTransparency = 0,
+                BackgroundTransparency = 0.8,
             }):Play()
             TweenService:Create(TabLabel, Library.TweenInfo, {
                 TextTransparency = 0,
@@ -8615,7 +8620,7 @@ function Library:CreateWindow(WindowInfo)
             end
 
             TweenService:Create(TabButton, Library.TweenInfo, {
-                BackgroundTransparency = 0,
+                BackgroundTransparency = 0.8,
             }):Play()
             TweenService:Create(TabLabel, Library.TweenInfo, {
                 TextTransparency = 0,
