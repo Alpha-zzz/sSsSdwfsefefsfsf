@@ -4897,6 +4897,7 @@ do
             Active = not Dropdown.Disabled,
             AnchorPoint = Vector2.new(0, 1),
             BackgroundColor3 = "MainColor",
+            BackgroundTransparency = 1, -- Transparent when closed; turns opaque when list opens
             Position = UDim2.fromScale(0, 1),
             Size = UDim2.new(1, 0, 0, 21),
             Text = "---",
@@ -4970,6 +4971,8 @@ do
             end,
             2,
             function(Active: boolean)
+                -- Show solid background while list is open, transparent while closed
+                Display.BackgroundTransparency = Active and 0 or 1
                 Display.TextTransparency = (Active and SearchBox) and 1 or 0
                 ArrowImage.ImageTransparency = Active and 0 or 0.5
                 ArrowImage.Rotation = Active and 180 or 0
