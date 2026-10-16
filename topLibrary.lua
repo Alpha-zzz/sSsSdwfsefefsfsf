@@ -1503,6 +1503,22 @@ function Library:ResetCursorCross()
     Library.Cursor:ResetCross()
 end
 
+function Library:SetCustomCursor(enabled: boolean)
+    Library.ShowCustomCursor = (enabled == true)
+    if Library.Toggled and not Library.IsMobile then
+        UserInputService.MouseIconEnabled = not Library.ShowCustomCursor
+        if Cursor then
+            Cursor.Visible = Library.ShowCustomCursor
+            Cursor.Position = UDim2.fromOffset(Mouse.X, Mouse.Y)
+        end
+    else
+        UserInputService.MouseIconEnabled = true
+        if Cursor then
+            Cursor.Visible = false
+        end
+    end
+end
+
 function Library:GetBetterColor(Color: Color3, Add: number): Color3
     Add = Add * (Library.IsLightTheme and -4 or 2)
     return Color3.fromRGB(
