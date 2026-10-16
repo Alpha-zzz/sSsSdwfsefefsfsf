@@ -220,8 +220,8 @@ local Library = {
     -- { ["CatName"] = { MaxCount=30, History={}, TabButton=nil } }
     NotificationCategories = {},
     NotificationCategoryOrder = {},
-    ActiveHistoryCategory = "All", -- 現在表示中のタブ名
-    NotificationCategoryTabBar = nil, -- タブバーのFrame
+    ActiveHistoryCategory = "All", -- Cleaned English comment
+    NotificationCategoryTabBar = nil, -- Cleaned English comment
 
     FuzzySearch = true,
     SearchValues = true,
@@ -1173,7 +1173,7 @@ function Library:GetCustomIcon(IconName: string): any
     end
 
     if tonumber(IconName) then
-        -- Decal等は rbxassetid だと空になることがあるので rbxthumb を使う
+        -- Cleaned English comment
         IconName = string.format("rbxthumb://type=Asset&id=%s&w=150&h=150", tostring(IconName))
     end
 
@@ -2074,7 +2074,7 @@ function Library:AddContextMenu(
             end
         end)
 
-        -- [完全修正] ドロップダウンを展開したままスクロールしたら、自動で閉じる
+        -- Cleaned English comment
         Table.ScrollSignals = {}
         local ancestor = Holder:FindFirstAncestorOfClass("ScrollingFrame")
         while ancestor do
@@ -2096,7 +2096,7 @@ function Library:AddContextMenu(
             Table.Signal = nil
         end
 
-        -- [完全修正] スクロールの監視を解除する
+        -- Cleaned English comment
         if Table.ScrollSignals then
             for _, sig in ipairs(Table.ScrollSignals) do
                 if sig.Connected then sig:Disconnect() end
@@ -4933,9 +4933,9 @@ do
             Info.Values = GetPlayers(Info.ExcludeLocalPlayer)
             Info.AllowNull = true
             
-            -- ▼▼ 追加：プレイヤー用の表示フォーマットをライブラリ側で自動設定する ▼▼
+            -- Cleaned English comment
             local function playerFormatter(v)
-                -- インスタンス、または文字列(ユーザー名)からプレイヤーのデータを特定
+                -- Cleaned English comment
                 local plrObj = typeof(v) == "Instance" and v or game:GetService("Players"):FindFirstChild(tostring(v))
                 if plrObj and plrObj:IsA("Player") then
                     return plrObj.DisplayName .. " (" .. plrObj.Name .. ")"
@@ -4943,14 +4943,14 @@ do
                 return tostring(v)
             end
             
-            -- スクリプト側で指定されていなければ、自動でフォーマットを適用する
+            -- Cleaned English comment
             if not Info.FormatListValue then
                 Info.FormatListValue = playerFormatter
             end
             if not Info.FormatDisplayValue then
                 Info.FormatDisplayValue = playerFormatter
             end
-            -- ▲▲ 追加ここまで ▲▲
+            -- Cleaned English comment
             
         elseif Info.SpecialType == "Team" then
             Info.Values = GetTeams()
@@ -5108,6 +5108,103 @@ do
             ArrowImage.ImageTransparency = Dropdown.Disabled and 0.8 or MenuTable.Active and 0 or 0.5
         end
 
+        function Dropdown:ExtractPlayerName(target)
+            if typeof(target) == "Instance" and target:IsA("Player") then
+                return target.Name
+            end
+            local str = tostring(target)
+            local nameInParens = str:match("%(([^%)]+)%)%s*$")
+            if nameInParens and nameInParens ~= "" then
+                return nameInParens
+            end
+            local firstToken = str:split(" ")[1]
+            if firstToken and firstToken ~= "" then
+                return firstToken
+            end
+            return str
+        end
+
+        function Dropdown:ResolvePlayerInstance(target)
+            if typeof(target) == "Instance" and target:IsA("Player") then
+                return target
+            end
+            local name = Dropdown:ExtractPlayerName(target)
+            local p = Players:FindFirstChild(name)
+            if p and p:IsA("Player") then
+                return p
+            end
+            if typeof(target) == "number" or tonumber(target) then
+                local numId = tonumber(target)
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player.UserId == numId then
+                        return player
+                    end
+                end
+            end
+            return nil
+        end
+
+        function Dropdown:MatchesPlayer(key, playerOrValue)
+            if key == playerOrValue then
+                return true
+            end
+            local p1 = Dropdown:ResolvePlayerInstance(key)
+            local p2 = Dropdown:ResolvePlayerInstance(playerOrValue)
+            if p1 and p2 and p1 == p2 then
+                return true
+            end
+            local n1 = Dropdown:ExtractPlayerName(key)
+            local n2 = Dropdown:ExtractPlayerName(playerOrValue)
+            if n1 and n2 and n1:lower() == n2:lower() then
+                return true
+            end
+            return false
+        end
+
+        function Dropdown:FindPlayerValue(target)
+            if not target then return nil end
+            if table.find(Dropdown.Values, target) then
+                return target
+            end
+            local targetName = Dropdown:ExtractPlayerName(target):lower()
+            for _, val in ipairs(Dropdown.Values) do
+                if Dropdown:ExtractPlayerName(val):lower() == targetName then
+                    return val
+                end
+            end
+            local p = Dropdown:ResolvePlayerInstance(target)
+            if p then
+                local formatted = p.DisplayName .. " (" .. p.Name .. ")"
+                return formatted
+            end
+            return tostring(target)
+        end
+
+        function Dropdown:IsPlayerSelected(playerOrName)
+            if Info.Multi then
+                if typeof(Dropdown.Value) ~= "table" then
+                    return false
+                end
+                if Dropdown.Value[playerOrName] == true then
+                    return true
+                end
+                for k, v in pairs(Dropdown.Value) do
+                    if v and Dropdown:MatchesPlayer(k, playerOrName) then
+                        return true
+                    end
+                end
+                return false
+            else
+                if Dropdown.Value == nil then
+                    return false
+                end
+                if Dropdown.Value == playerOrName then
+                    return true
+                end
+                return Dropdown:MatchesPlayer(Dropdown.Value, playerOrName)
+            end
+        end
+
         function Dropdown:Display()
             if Library.Unloaded then
                 return
@@ -5117,7 +5214,17 @@ do
 
             if Info.Multi then
                 for _, Value in Dropdown.Values do
-                    if Dropdown.Value[Value] then
+                    local isSelected = (Dropdown.Value and Dropdown.Value[Value] == true)
+                    if not isSelected and Info.SpecialType == "Player" and typeof(Dropdown.Value) == "table" then
+                        for k, v in pairs(Dropdown.Value) do
+                            if v and Dropdown:MatchesPlayer(k, Value) then
+                                isSelected = true
+                                break
+                            end
+                        end
+                    end
+
+                    if isSelected then
                         Str = Str
                             .. (Info.FormatDisplayValue and tostring(Info.FormatDisplayValue(Value)) or tostring(Value))
                             .. ", "
@@ -5126,7 +5233,11 @@ do
 
                 Str = Str:sub(1, #Str - 2)
             else
-                Str = Dropdown.Value and tostring(Dropdown.Value) or ""
+                local DisplayValue = Dropdown.Value
+                if Info.SpecialType == "Player" and Dropdown.Value ~= nil then
+                    DisplayValue = Dropdown:FindPlayerValue(Dropdown.Value) or Dropdown.Value
+                end
+                Str = DisplayValue and tostring(DisplayValue) or ""
                 if Str ~= "" and Info.FormatDisplayValue then
                     Str = tostring(Info.FormatDisplayValue(Str))
                 end
@@ -5198,16 +5309,38 @@ do
 
                 local Selected
                 if Info.Multi then
-                    Selected = Dropdown.Value[Value]
+                    Selected = (Dropdown.Value and Dropdown.Value[Value] == true)
+                    if not Selected and Info.SpecialType == "Player" and typeof(Dropdown.Value) == "table" then
+                        for k, v in pairs(Dropdown.Value) do
+                            if v and Dropdown:MatchesPlayer(k, Value) then
+                                Selected = true
+                                break
+                            end
+                        end
+                    end
                 else
                     Selected = Dropdown.Value == Value
+                    if not Selected and Info.SpecialType == "Player" and Dropdown.Value ~= nil then
+                        Selected = Dropdown:MatchesPlayer(Dropdown.Value, Value)
+                    end
                 end
 
                 function Table:UpdateButton()
                     if Info.Multi then
-                        Selected = Dropdown.Value[Value]
+                        Selected = (Dropdown.Value and Dropdown.Value[Value] == true)
+                        if not Selected and Info.SpecialType == "Player" and typeof(Dropdown.Value) == "table" then
+                            for k, v in pairs(Dropdown.Value) do
+                                if v and Dropdown:MatchesPlayer(k, Value) then
+                                    Selected = true
+                                    break
+                                end
+                            end
+                        end
                     else
                         Selected = Dropdown.Value == Value
+                        if not Selected and Info.SpecialType == "Player" and Dropdown.Value ~= nil then
+                            Selected = Dropdown:MatchesPlayer(Dropdown.Value, Value)
+                        end
                     end
 
                     Button.BackgroundTransparency = Selected and 0 or 1
@@ -5222,12 +5355,19 @@ do
                             Selected = Try
                             if Info.Multi then
                                 Dropdown.Value[Value] = Selected and true or nil
+                                if Info.SpecialType == "Player" then
+                                    local pObj = Dropdown:ResolvePlayerInstance(Value)
+                                    if pObj then
+                                        Dropdown.Value[pObj] = Selected and true or nil
+                                        Dropdown.Value[pObj.Name] = Selected and true or nil
+                                    end
+                                end
                             else
                                 Dropdown.Value = Selected and Value or nil
                             end
 
-                            for _, OtherButton in Buttons do
-                                OtherButton:UpdateButton()
+                            for _, OtherTable in pairs(Buttons) do
+                                OtherTable:UpdateButton()
                             end
                         end
 
@@ -5249,21 +5389,217 @@ do
             Dropdown:RecalculateListSize(Count)
         end
 
+        function Dropdown:SetPlayerSelected(playerOrName, isSelected)
+            if isSelected == nil then isSelected = true end
+            local matchedVal = Dropdown:FindPlayerValue(playerOrName)
+            if not matchedVal then return end
+
+            if not table.find(Dropdown.Values, matchedVal) then
+                table.insert(Dropdown.Values, matchedVal)
+                Dropdown:BuildDropdownList()
+            end
+
+            local pObj = Dropdown:ResolvePlayerInstance(playerOrName) or Dropdown:ResolvePlayerInstance(matchedVal)
+
+            if Info.Multi then
+                if typeof(Dropdown.Value) ~= "table" then
+                    Dropdown.Value = {}
+                end
+                if isSelected then
+                    Dropdown.Value[matchedVal] = true
+                    if pObj then
+                        Dropdown.Value[pObj] = true
+                        Dropdown.Value[pObj.Name] = true
+                    end
+                else
+                    Dropdown.Value[matchedVal] = nil
+                    if pObj then
+                        Dropdown.Value[pObj] = nil
+                        Dropdown.Value[pObj.Name] = nil
+                    end
+                    for k, _ in pairs(Dropdown.Value) do
+                        if Dropdown:MatchesPlayer(k, matchedVal) then
+                            Dropdown.Value[k] = nil
+                        end
+                    end
+                end
+            else
+                Dropdown.Value = isSelected and matchedVal or nil
+            end
+
+            Dropdown:Display()
+            for _, Table in pairs(Buttons) do
+                Table:UpdateButton()
+            end
+
+            if not Dropdown.Disabled then
+                Library:UpdateDependencyBoxes()
+                Library:SafeCallback(Dropdown.Callback, Dropdown.Value)
+                Library:SafeCallback(Dropdown.Changed, Dropdown.Value)
+            end
+        end
+
+        function Dropdown:TogglePlayer(playerOrName)
+            local isSelected = Dropdown:IsPlayerSelected(playerOrName)
+            Dropdown:SetPlayerSelected(playerOrName, not isSelected)
+            return not isSelected
+        end
+
+        function Dropdown:GetSelectedPlayers()
+            local result = {}
+            if Info.Multi then
+                if typeof(Dropdown.Value) == "table" then
+                    for k, v in pairs(Dropdown.Value) do
+                        if v then
+                            local p = Dropdown:ResolvePlayerInstance(k)
+                            if p and not table.find(result, p) then
+                                table.insert(result, p)
+                            elseif not p and not table.find(result, k) then
+                                table.insert(result, k)
+                            end
+                        end
+                    end
+                end
+            else
+                if Dropdown.Value ~= nil then
+                    local p = Dropdown:ResolvePlayerInstance(Dropdown.Value)
+                    table.insert(result, p or Dropdown.Value)
+                end
+            end
+            return result
+        end
+
+        function Dropdown:SetSelectedPlayers(playerListOrMap)
+            if not Info.Multi then
+                if typeof(playerListOrMap) == "table" then
+                    for k, v in pairs(playerListOrMap) do
+                        local target = (typeof(k) == "number") and v or k
+                        Dropdown:SetPlayerSelected(target, true)
+                        break
+                    end
+                else
+                    Dropdown:SetPlayerSelected(playerListOrMap, true)
+                end
+                return
+            end
+
+            local newTable = {}
+            if typeof(playerListOrMap) == "table" then
+                for k, v in pairs(playerListOrMap) do
+                    local target = nil
+                    local isSel = true
+                    if typeof(k) == "number" then
+                        target = v
+                    else
+                        target = k
+                        isSel = (v == true)
+                    end
+
+                    if isSel and target then
+                        local matchedVal = Dropdown:FindPlayerValue(target)
+                        if matchedVal then
+                            if not table.find(Dropdown.Values, matchedVal) then
+                                table.insert(Dropdown.Values, matchedVal)
+                            end
+                            newTable[matchedVal] = true
+                            local pObj = Dropdown:ResolvePlayerInstance(target) or Dropdown:ResolvePlayerInstance(matchedVal)
+                            if pObj then
+                                newTable[pObj] = true
+                                newTable[pObj.Name] = true
+                            end
+                        end
+                    end
+                end
+            end
+
+            Dropdown.Value = newTable
+            Dropdown:BuildDropdownList()
+            Dropdown:Display()
+            for _, Table in pairs(Buttons) do
+                Table:UpdateButton()
+            end
+
+            if not Dropdown.Disabled then
+                Library:UpdateDependencyBoxes()
+                Library:SafeCallback(Dropdown.Callback, Dropdown.Value)
+                Library:SafeCallback(Dropdown.Changed, Dropdown.Value)
+            end
+        end
+
+        function Dropdown:ClearSelection()
+            if Info.Multi then
+                Dropdown.Value = {}
+            else
+                Dropdown.Value = nil
+            end
+            Dropdown:Display()
+            for _, Table in pairs(Buttons) do
+                Table:UpdateButton()
+            end
+            if not Dropdown.Disabled then
+                Library:UpdateDependencyBoxes()
+                Library:SafeCallback(Dropdown.Callback, Dropdown.Value)
+                Library:SafeCallback(Dropdown.Changed, Dropdown.Value)
+            end
+        end
+        Dropdown.ClearPlayers = Dropdown.ClearSelection
+
         function Dropdown:SetValue(Value)
             if Info.Multi then
                 local Table = {}
 
-                for Val, Active in Value or {} do
+                for Val, Active in pairs(Value or {}) do
                     if typeof(Active) ~= "boolean" then
-                        Table[Active] = true
-                    elseif Active and table.find(Dropdown.Values, Val) then
-                        Table[Val] = true
+                        local target = Active
+                        if Info.SpecialType == "Player" then
+                            local matched = Dropdown:FindPlayerValue(target)
+                            if matched then
+                                if not table.find(Dropdown.Values, matched) then
+                                    table.insert(Dropdown.Values, matched)
+                                end
+                                Table[matched] = true
+                                local pObj = Dropdown:ResolvePlayerInstance(target) or Dropdown:ResolvePlayerInstance(matched)
+                                if pObj then
+                                    Table[pObj] = true
+                                    Table[pObj.Name] = true
+                                end
+                            end
+                        else
+                            Table[target] = true
+                        end
+                    elseif Active then
+                        if Info.SpecialType == "Player" then
+                            local matched = Dropdown:FindPlayerValue(Val)
+                            if matched then
+                                if not table.find(Dropdown.Values, matched) then
+                                    table.insert(Dropdown.Values, matched)
+                                end
+                                Table[matched] = true
+                                local pObj = Dropdown:ResolvePlayerInstance(Val) or Dropdown:ResolvePlayerInstance(matched)
+                                if pObj then
+                                    Table[pObj] = true
+                                    Table[pObj.Name] = true
+                                end
+                            end
+                        elseif table.find(Dropdown.Values, Val) then
+                            Table[Val] = true
+                        end
                     end
                 end
 
                 Dropdown.Value = Table
             else
-                if table.find(Dropdown.Values, Value) then
+                if Info.SpecialType == "Player" and Value ~= nil then
+                    local matched = Dropdown:FindPlayerValue(Value)
+                    if matched then
+                        if not table.find(Dropdown.Values, matched) then
+                            table.insert(Dropdown.Values, matched)
+                        end
+                        Dropdown.Value = matched
+                    else
+                        Dropdown.Value = nil
+                    end
+                elseif table.find(Dropdown.Values, Value) then
                     Dropdown.Value = Value
                 elseif not Value then
                     Dropdown.Value = nil
@@ -5271,8 +5607,8 @@ do
             end
 
             Dropdown:Display()
-            for _, Button in Buttons do
-                Button:UpdateButton()
+            for _, Table in pairs(Buttons) do
+                Table:UpdateButton()
             end
 
             if not Dropdown.Disabled then
@@ -5283,8 +5619,6 @@ do
         end
 
         function Dropdown:SetValues(Values)
-            -- [完全修正2] 配列の「汚染バグ」を防ぐため、リストを一度複製する
-            -- これをしないと、別のドロップダウンに退出したプレイヤーの名前が混ざってしまいます
             local clonedValues = {}
             for _, v in ipairs(Values) do
                 table.insert(clonedValues, v)
@@ -5293,30 +5627,20 @@ do
 
             local currentVal = Dropdown.Value
 
-            -- [完全修正1] プレイヤー名だけを確実に抽出するヘルパー関数
-            local function extractName(data)
-                if typeof(data) == "Instance" and data:IsA("Player") then
-                    return data.Name
-                end
-                local str = tostring(data)
-                return str:match("%(([^%)]+)%)%s*$") or str:split(" ")[1] or str
-            end
-
-            -- マルチ選択時の処理
             if Info.Multi then
                 local updatedVal = {}
                 if type(currentVal) == "table" then
                     for k, v in pairs(currentVal) do
                         if v then
                             local foundNew = nil
-                            local curNameStr = extractName(k)
+                            local curName = Dropdown:ExtractPlayerName(k)
 
                             for _, val in ipairs(Values) do
                                 if val == k then
                                     foundNew = val
                                     break
                                 elseif Info.SpecialType == "Player" then
-                                    if extractName(val) == curNameStr then
+                                    if Dropdown:ExtractPlayerName(val) == curName then
                                         foundNew = val
                                         break
                                     end
@@ -5324,25 +5648,26 @@ do
                             end
 
                             if foundNew ~= nil then
-                                -- 相手が入り直してきた：新しいデータにすり替える
                                 updatedVal[foundNew] = true
+                                local pObj = Dropdown:ResolvePlayerInstance(foundNew)
+                                if pObj then
+                                    updatedVal[pObj] = true
+                                    updatedVal[pObj.Name] = true
+                                end
                             elseif Info.SpecialType == "Player" then
-                                -- 相手が抜けている：DisplayName (ID) の文字列に変換して強制追加する
                                 local savedStr = k
                                 if typeof(k) == "Instance" and k:IsA("Player") then
                                     savedStr = k.DisplayName .. " (" .. k.Name .. ")"
                                 end
-                                -- リスト内で重複しないように追加
-                                local alreadyExists = false
-                                for _, existingVal in ipairs(Values) do
-                                    if existingVal == savedStr then alreadyExists = true break end
-                                end
-                                if not alreadyExists then
+                                if not table.find(Values, savedStr) then
                                     table.insert(Values, savedStr)
                                 end
                                 updatedVal[savedStr] = true
-                            else
-                                -- 通常のドロップダウンの場合、リストに無い値はそのまま消去する（汚染防止）
+                                local pObj = Dropdown:ResolvePlayerInstance(k)
+                                if pObj then
+                                    updatedVal[pObj] = true
+                                    updatedVal[pObj.Name] = true
+                                end
                             end
                         end
                     end
@@ -5350,17 +5675,16 @@ do
                 Dropdown.Value = updatedVal
                 currentVal = updatedVal
             else
-                -- 単一選択時の処理
                 if currentVal ~= nil then
                     local foundNew = nil
-                    local curNameStr = extractName(currentVal)
+                    local curName = Dropdown:ExtractPlayerName(currentVal)
 
                     for _, val in ipairs(Values) do
                         if val == currentVal then
                             foundNew = val
                             break
                         elseif Info.SpecialType == "Player" then
-                            if extractName(val) == curNameStr then
+                            if Dropdown:ExtractPlayerName(val) == curName then
                                 foundNew = val
                                 break
                             end
@@ -5368,49 +5692,39 @@ do
                     end
 
                     if foundNew ~= nil then
-                        -- 新しいデータにすり替える
                         Dropdown.Value = foundNew
                         currentVal = foundNew
                     elseif Info.SpecialType == "Player" then
-                        -- 相手が抜けている：DisplayName (ID) の文字列に変換して強制追加する
                         local savedStr = currentVal
                         if typeof(currentVal) == "Instance" and currentVal:IsA("Player") then
                             savedStr = currentVal.DisplayName .. " (" .. currentVal.Name .. ")"
                         end
-                        -- リスト内で重複しないように追加
-                        local alreadyExists = false
-                        for _, existingVal in ipairs(Values) do
-                            if existingVal == savedStr then alreadyExists = true break end
-                        end
-                        if not alreadyExists then
+                        if not table.find(Values, savedStr) then
                             table.insert(Values, savedStr)
                         end
                         Dropdown.Value = savedStr
                         currentVal = savedStr
                     else
-                        -- 通常のドロップダウンの場合、リストに無い値は選択解除する（リストを汚染させない）
                         Dropdown.Value = nil
                         currentVal = nil
                     end
                 end
             end
 
-            -- 新しいリストでUIを構築（抜けた相手もリストに表示され続ける）
             Dropdown.Values = Values
             Dropdown:BuildDropdownList()
 
-            -- [絶対にリセットさせない] 
-            if Info.Multi then
-                Dropdown:SetValue(currentVal)
-            else
-                if currentVal ~= nil then
-                    Dropdown:SetValue(currentVal)
-                else
-                    Dropdown:SetValue(nil)
-                end
+            -- 無駄なSetValueによる値の破壊を防ぎ、直接UIの見た目(色)を更新する
+            Dropdown:Display()
+            for _, Table in pairs(Buttons) do
+                Table:UpdateButton()
+            end
+            if not Dropdown.Disabled then
+                Library:UpdateDependencyBoxes()
+                Library:SafeCallback(Dropdown.Callback, Dropdown.Value)
+                Library:SafeCallback(Dropdown.Changed, Dropdown.Value)
             end
         end
-
         function Dropdown:AddValues(Values)
             if typeof(Values) == "table" then
                 for _, val in Values do
@@ -6387,10 +6701,10 @@ end
 
 --// Notification Category System \\--
 
--- カテゴリーを登録する（事前登録しなくても Notify 時に自動登録される）
+-- Cleaned English comment
 function Library:RegisterNotifyCategory(Name, Options)
     if Library.NotificationCategories[Name] then
-        return -- すでに存在する場合はスキップ
+        return -- Cleaned English comment
     end
     Options = Options or {}
     Library.NotificationCategories[Name] = {
@@ -6399,17 +6713,17 @@ function Library:RegisterNotifyCategory(Name, Options)
         TabButton = nil,
     }
     table.insert(Library.NotificationCategoryOrder, Name)
-    -- 履歴ウィンドウが既に存在する場合はタブを即追加
+    -- Cleaned English comment
     Library:_AddCategoryTab(Name)
 end
 
--- 内部関数: カテゴリータブボタンを追加
+-- Cleaned English comment
 function Library:_AddCategoryTab(Name)
     local TabBar = Library.NotificationCategoryTabBar
     if not TabBar then return end
     local Cat = Library.NotificationCategories[Name]
     if not Cat then return end
-    if Cat.TabButton then return end -- すでにある
+    if Cat.TabButton then return end -- Cleaned English comment
 
     local Btn = New("TextButton", {
         BackgroundColor3 = "MainColor",
@@ -6432,13 +6746,13 @@ function Library:_AddCategoryTab(Name)
     end)
 end
 
--- 内部関数: タブを切り替えて表示をフィルタリング
+-- Cleaned English comment
 function Library:_SwitchHistoryTab(CategoryName)
     Library.ActiveHistoryCategory = CategoryName
     local Container = Library.NotificationHistoryContainer
     if not Container then return end
 
-    -- タブボタンのアクティブ状態を更新
+    -- Cleaned English comment
     local TabBar = Library.NotificationCategoryTabBar
     if TabBar then
         for _, Btn in TabBar:GetChildren() do
@@ -6456,12 +6770,12 @@ function Library:_SwitchHistoryTab(CategoryName)
         end
     end
 
-    -- 各通知フレームの表示/非表示を切り替え
+    -- Cleaned English comment
     local SearchFilter = (Library.NotificationHistorySearchBox and Library.NotificationHistorySearchBox.Text:lower()) or ""
     for _, Child in Container:GetChildren() do
         if Child:IsA("Frame") then
             if CategoryName == "All" then
-                -- 全体表示: 検索フィルターのみ適用
+                -- Cleaned English comment
                 local ContentLabel = Child:FindFirstChild("Content")
                 if ContentLabel then
                     Child.Visible = SearchFilter == "" or ContentLabel.Text:lower():find(SearchFilter, 1, true) ~= nil
@@ -6469,7 +6783,7 @@ function Library:_SwitchHistoryTab(CategoryName)
                     Child.Visible = true
                 end
             else
-                -- カテゴリー表示: カテゴリータグが一致するものだけ
+                -- Cleaned English comment
                 local catTag = Child:GetAttribute("Category")
                 local show = (catTag == CategoryName)
                 if show and SearchFilter ~= "" then
@@ -6529,22 +6843,22 @@ function Library:Notify(...)
             Color       = TypeColor or Library.Scheme.AccentColor,
         }
 
-        -- グローバル履歴（全体）に追加
+        -- Cleaned English comment
         table.insert(Library.NotificationHistory, 1, HistoryEntry)
         if #Library.NotificationHistory > Library.NotificationHistoryLimit then
             table.remove(Library.NotificationHistory, #Library.NotificationHistory)
         end
     end
 
-    -- カテゴリー別履歴に追加
+    -- Cleaned English comment
     if CategoryName then
-        -- カテゴリーが未登録なら自動登録（MaxCount=30）
+        -- Cleaned English comment
         if not Library.NotificationCategories[CategoryName] then
             Library:RegisterNotifyCategory(CategoryName, { MaxCount = 30 })
         end
         local Cat = Library.NotificationCategories[CategoryName]
         table.insert(Cat.History, 1, HistoryEntry)
-        -- カテゴリーの上限を超えたら古いものを削除
+        -- Cleaned English comment
         if #Cat.History > Cat.MaxCount then
             table.remove(Cat.History, #Cat.History)
         end
@@ -6575,7 +6889,7 @@ function Library:Notify(...)
             LayoutOrder = 1,
             Parent = Container,
         })
-        -- カテゴリータグをAttributeとして保存（タブフィルタリングに使用）
+        -- Cleaned English comment
         HistoryFrame:SetAttribute("Category", CategoryName or "")
         table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = HistoryFrame }))
         New("UIStroke", { Color = "OutlineColor", Parent = HistoryFrame })
@@ -6663,7 +6977,7 @@ function Library:Notify(...)
             end
         end)
 
-        -- 新しく追加した通知を一番上に、既存のものは順番を維持して下に押し出す
+        -- Cleaned English comment
         for _, Child in Container:GetChildren() do
             if Child:IsA("Frame") and Child ~= HistoryFrame then
                 Child.LayoutOrder = Child.LayoutOrder + 1
@@ -6671,7 +6985,7 @@ function Library:Notify(...)
         end
         HistoryFrame.LayoutOrder = 0
 
-        -- UIフレームを最新（LayoutOrderが小さい）順に並べる
+        -- Cleaned English comment
         local frames = {}
         for _, Child in ipairs(Container:GetChildren()) do
             if Child:IsA("Frame") then
@@ -6682,7 +6996,7 @@ function Library:Notify(...)
             return a.LayoutOrder < b.LayoutOrder
         end)
 
-        -- 最新のものから数えて、上限を超えた一番古いUIを削除
+        -- Cleaned English comment
         local CatCount = 0
         local MaxForCategory = CategoryName and Library.NotificationCategories[CategoryName] and Library.NotificationCategories[CategoryName].MaxCount or Library.NotificationHistoryLimit
         for _, Child in ipairs(frames) do
@@ -6695,7 +7009,7 @@ function Library:Notify(...)
             end
         end
 
-        -- 現在のタブに合わせて表示/非表示を適用
+        -- Cleaned English comment
         local activeTab = Library.ActiveHistoryCategory
         if activeTab ~= "All" then
             HistoryFrame.Visible = (HistoryFrame:GetAttribute("Category") == activeTab)
@@ -6703,7 +7017,7 @@ function Library:Notify(...)
             HistoryFrame.Visible = true
         end
 
-        -- 検索フィルターも適用
+        -- Cleaned English comment
         local SearchFilter = Library.NotificationHistorySearchText
         if SearchFilter ~= "" then
             local ContentLabel = HistoryFrame:FindFirstChild("Content")
@@ -7050,7 +7364,7 @@ function Library:CreateWindow(WindowInfo)
     Library.ToggleKeybind = WindowInfo.ToggleKeybind
     Library.GlobalSearch = WindowInfo.GlobalSearch
 
-    local IsDefaultSearchbarSize = false -- ★ タブ切り替え時にデカく戻るのを完全に無効化
+    local IsDefaultSearchbarSize = false -- Cleaned English comment
     local MainFrame
     local DividerLine
     local TitleHolder
@@ -7116,7 +7430,7 @@ function Library:CreateWindow(WindowInfo)
             Parent = MainFrame,
         })
 
-        -- 背景は常に用意（後から画像リンクで差し替え可能）
+        -- Cleaned English comment
         BackgroundImage = New("ImageLabel", {
             Name = "MonolithBackgroundImage",
             Image = WindowInfo.BackgroundImage or "",
@@ -7221,7 +7535,7 @@ function Library:CreateWindow(WindowInfo)
 
         New("UIListLayout", {
             FillDirection = Enum.FillDirection.Horizontal,
-            HorizontalAlignment = Enum.HorizontalAlignment.Right, -- ★ 右寄せに変更
+            HorizontalAlignment = Enum.HorizontalAlignment.Right, -- Cleaned English comment
             VerticalAlignment = Enum.VerticalAlignment.Center,
             Padding = UDim.new(0, 8),
             Parent = RightWrapper,
@@ -7280,13 +7594,13 @@ function Library:CreateWindow(WindowInfo)
             BackgroundColor3 = "MainColor",
             BackgroundTransparency = 1,
             PlaceholderText = "Search",
-            Size = UDim2.new(0, 200, 1, 0), -- ★ 横幅を200pxに固定
+            Size = UDim2.new(0, 200, 1, 0), -- Cleaned English comment
             TextScaled = true,
             Visible = not (WindowInfo.DisableSearch or false),
             Parent = RightWrapper,
         })
         New("UIFlexItem", {
-            FlexMode = Enum.UIFlexMode.None, -- ★ 勝手に伸び縮みするのを防止
+            FlexMode = Enum.UIFlexMode.None, -- Cleaned English comment
             Parent = SearchBox,
         })
         table.insert(
@@ -9313,7 +9627,7 @@ function Library:CreateWindow(WindowInfo)
             local ScaleObj = Frame:FindFirstChildOfClass("UIScale")
             
             if ScaleObj then
-                ScaleObj.Scale = 1 -- アニメーションしないのでスケールは常に1
+                ScaleObj.Scale = 1 -- Cleaned English comment
             end
 
             if Library.NotificationHistoryOpen then
@@ -9348,7 +9662,7 @@ function Library:CreateWindow(WindowInfo)
         MainFrame.Visible = Library.Toggled
 
         if not Library.Toggled then
-            -- GUIを閉じた時は通知履歴も閉じる
+            -- Cleaned English comment
             Library:ToggleNotificationHistory(false)
         end
 
@@ -9606,7 +9920,7 @@ function Library:CreateWindow(WindowInfo)
         })
         New("UIPadding", { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12), Parent = TitleLabel })
 
-        -- Category Tab Bar (タイトルの下)
+        -- Cleaned English comment
         local TabBar = New("ScrollingFrame", {
             BackgroundTransparency = 1,
             Position = UDim2.fromOffset(0, 35),
@@ -9621,7 +9935,7 @@ function Library:CreateWindow(WindowInfo)
         New("UIPadding", { PaddingLeft = UDim.new(0, 7), PaddingRight = UDim.new(0, 7), Parent = TabBar })
         Library.NotificationCategoryTabBar = TabBar
 
-        -- 「全体」タブ（常に最初）
+        -- Cleaned English comment
         local AllTabBtn = New("TextButton", {
             BackgroundColor3 = "AccentColor",
             AutomaticSize = Enum.AutomaticSize.X,
@@ -9641,7 +9955,7 @@ function Library:CreateWindow(WindowInfo)
             Library:_SwitchHistoryTab("All")
         end)
 
-        -- すでに登録済みのカテゴリーがあればタブボタンを生成
+        -- Cleaned English comment
         for _, CatName in ipairs(Library.NotificationCategoryOrder) do
             local CatData = Library.NotificationCategories[CatName]
             if CatData and not CatData.TabButton then
@@ -9652,7 +9966,7 @@ function Library:CreateWindow(WindowInfo)
         -- Add Search Box for Notification History at the top
         local HistorySearchContainer = New("Frame", {
             BackgroundTransparency = 1,
-            Position = UDim2.fromOffset(0, 66),  -- タブバー分下げる
+            Position = UDim2.fromOffset(0, 66),  -- Cleaned English comment
             Size = UDim2.new(1, 0, 0, 32),
             Parent = Frame,
         })
@@ -9681,7 +9995,7 @@ function Library:CreateWindow(WindowInfo)
         New("UIStroke", { Color = "OutlineColor", Parent = ClearBtn })
         local Container = New("ScrollingFrame", {
             BackgroundTransparency = 1,
-            Position = UDim2.fromOffset(0, 99), -- タイトル34 + タブバー30 + 検索32 = 96 + 余白3
+            Position = UDim2.fromOffset(0, 99), -- Cleaned English comment
             Size = UDim2.new(1, 0, 1, -99),
             CanvasSize = UDim2.new(0, 0, 0, 0),
             AutomaticCanvasSize = Enum.AutomaticSize.Y,
@@ -9692,20 +10006,20 @@ function Library:CreateWindow(WindowInfo)
         New("UIPadding", { PaddingBottom = UDim.new(0, 7), PaddingLeft = UDim.new(0, 7), PaddingRight = UDim.new(0, 7), PaddingTop = UDim.new(0, 0), Parent = Container })
         
         ClearBtn.MouseButton1Click:Connect(function()
-            -- 現在のタブに応じて削除対象を切り替え
+            -- Cleaned English comment
             local activeTab = Library.ActiveHistoryCategory
             for _, Child in Container:GetChildren() do
                 if Child:IsA("Frame") then
                     if activeTab == "All" then
-                        Child:Destroy() -- 全体タブ → 全削除
+                        Child:Destroy() -- Cleaned English comment
                     else
                         if Child:GetAttribute("Category") == activeTab then
-                            Child:Destroy() -- カテゴリータブ → そのカテゴリーのみ削除
+                            Child:Destroy() -- Cleaned English comment
                         end
                     end
                 end
             end
-            -- データも削除
+            -- Cleaned English comment
             if activeTab == "All" then
                 table.clear(Library.NotificationHistory)
                 for _, Cat in Library.NotificationCategories do
@@ -9718,7 +10032,7 @@ function Library:CreateWindow(WindowInfo)
             else
                 local Cat = Library.NotificationCategories[activeTab]
                 if Cat then table.clear(Cat.History) end
-                -- グローバル履歴からもそのカテゴリーを除去
+                -- Cleaned English comment
                 for i = #Library.NotificationHistory, 1, -1 do
                     if Library.NotificationHistory[i].Category == activeTab then
                         table.remove(Library.NotificationHistory, i)
