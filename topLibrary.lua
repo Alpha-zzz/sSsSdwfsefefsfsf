@@ -1316,48 +1316,66 @@ local ModalElement = New("TextButton", {
 })
 
 --// Cursor
-local Cursor, CursorCustomImage
+local Cursor, CursorCross, CursorCustomImage
+local InnerCross = {}
 do
     Cursor = New("Frame", {
         AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = "WhiteColor",
-        Size = UDim2.fromOffset(9, 1),
+        BackgroundTransparency = 1,
+        Size = UDim2.fromOffset(1, 1),
         Visible = false,
         ZIndex = 11000,
         Parent = ScreenGui,
     })
-    New("Frame", {
+
+    CursorCross = New("Frame", {
         AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = "DarkColor",
+        BackgroundTransparency = 1,
         Position = UDim2.fromScale(0.5, 0.5),
-        Size = UDim2.new(1, 2, 1, 2),
-        ZIndex = 10999,
+        Size = UDim2.fromOffset(11, 11),
         Parent = Cursor,
     })
 
-    local CursorV = New("Frame", {
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = "WhiteColor",
-        Position = UDim2.fromScale(0.5, 0.5),
-        Size = UDim2.fromOffset(1, 9),
-        ZIndex = 11000,
-        Parent = Cursor,
-    })
     New("Frame", {
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundColor3 = "DarkColor",
         Position = UDim2.fromScale(0.5, 0.5),
-        Size = UDim2.new(1, 2, 1, 2),
-        ZIndex = 10999,
-        Parent = CursorV,
+        Size = UDim2.new(1, 0, 0, 3),
+        ZIndex = 11001,
+        Parent = CursorCross,
     })
+    table.insert(InnerCross, New("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = "WhiteColor",
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.new(1, -2, 0, 1),
+        ZIndex = 11002,
+        Parent = CursorCross,
+    }))
+
+    New("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = "DarkColor",
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.new(0, 3, 1, 0),
+        ZIndex = 11001,
+        Parent = CursorCross,
+    })
+    table.insert(InnerCross, New("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = "WhiteColor",
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.new(0, 1, 1, -2),
+        ZIndex = 11002,
+        Parent = CursorCross,
+    }))
 
     CursorCustomImage = New("ImageLabel", {
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundTransparency = 1,
         Position = UDim2.fromScale(0.5, 0.5),
         Size = UDim2.fromOffset(20, 20),
-        ZIndex = 11000,
+        ZIndex = 11003,
         Visible = false,
         Parent = Cursor
     })
@@ -1389,29 +1407,100 @@ do
 end
 
 --// Lib Functions \\--
-function Library:ResetCursorIcon()
-    CursorCustomImage.Visible = false
-    CursorCustomImage.Size = UDim2.fromOffset(20, 20)
+Library.Cursor = Library.Cursor or {}
+
+function Library.Cursor:ResetCross()
+    for _, Inner in ipairs(InnerCross) do
+        if Library.Registry and Library.Registry[Inner] then
+            Library.Registry[Inner].BackgroundColor3 = "WhiteColor"
+        end
+        Inner.BackgroundColor3 = (Library.Scheme and Library.Scheme.WhiteColor) or Color3.new(1, 1, 1)
+    end
 end
 
-function Library:ChangeCursorIcon(ImageId: string)
+function Library.Cursor:ResetIcon()
+    if CursorCross then CursorCross.Visible = true end
+    if CursorCustomImage then
+        CursorCustomImage.Visible = false
+        CursorCustomImage.Image = ""
+        CursorCustomImage.ImageColor3 = Color3.new(1, 1, 1)
+        CursorCustomImage.Size = UDim2.fromOffset(20, 20)
+    end
+end
+
+function Library.Cursor:ResetCursor()
+    Library.Cursor:ResetCross()
+    Library.Cursor:ResetIcon()
+end
+
+function Library.Cursor:ChangeCrossColor(Color: Color3)
+    assert(typeof(Color) == "Color3", "Color3 expected.")
+    for _, Inner in ipairs(InnerCross) do
+        Inner.BackgroundColor3 = Color
+        if Library.Registry and Library.Registry[Inner] then
+            Library.Registry[Inner].BackgroundColor3 = nil
+        end
+    end
+end
+
+function Library.Cursor:ChangeIcon(ImageId: string)
     if not ImageId or ImageId == "" then
-        Library:ResetCursorIcon()
+        Library.Cursor:ResetIcon()
         return
     end
 
     local Icon = Library:GetCustomIcon(ImageId)
-    assert(Icon, "Image must be a valid Roblox asset or a valid URL or a valid lucide icon.")
+    if Icon then
+        if CursorCross then CursorCross.Visible = false end
+        CursorCustomImage.Visible = true
+        CursorCustomImage.Image = Icon.Url
+        CursorCustomImage.ImageRectOffset = Icon.ImageRectOffset or Vector2.zero
+        CursorCustomImage.ImageRectSize = Icon.ImageRectSize or Vector2.zero
+    else
+        if CursorCross then CursorCross.Visible = false end
+        CursorCustomImage.Visible = true
+        CursorCustomImage.Image = ImageId
+        CursorCustomImage.ImageRectOffset = Vector2.zero
+        CursorCustomImage.ImageRectSize = Vector2.zero
+    end
+end
 
-    CursorCustomImage.Visible = true
-    CursorCustomImage.Image = Icon.Url
-    CursorCustomImage.ImageRectOffset = Icon.ImageRectOffset
-    CursorCustomImage.ImageRectSize = Icon.ImageRectSize
+function Library.Cursor:ChangeIconColor(Color: Color3)
+    assert(typeof(Color) == "Color3", "Color3 expected.")
+    if CursorCustomImage then
+        CursorCustomImage.ImageColor3 = Color
+    end
+end
+
+function Library.Cursor:ChangeIconSize(Size: UDim2)
+    assert(typeof(Size) == "UDim2", "UDim2 expected.")
+    if CursorCustomImage then
+        CursorCustomImage.Size = Size
+    end
+end
+
+function Library:ResetCursorIcon()
+    Library.Cursor:ResetIcon()
+end
+
+function Library:ChangeCursorIcon(ImageId: string)
+    Library.Cursor:ChangeIcon(ImageId)
+end
+
+function Library:ChangeCursorIconColor(Color: Color3)
+    Library.Cursor:ChangeIconColor(Color)
 end
 
 function Library:ChangeCursorIconSize(Size: UDim2)
-    assert(typeof(Size) == "UDim2", "UDim2 expected.")
-    CursorCustomImage.Size = Size
+    Library.Cursor:ChangeIconSize(Size)
+end
+
+function Library:ChangeCursorCrossColor(Color: Color3)
+    Library.Cursor:ChangeCrossColor(Color)
+end
+
+function Library:ResetCursorCross()
+    Library.Cursor:ResetCross()
 end
 
 function Library:GetBetterColor(Color: Color3, Add: number): Color3
@@ -9258,10 +9347,10 @@ function Library:CreateWindow(WindowInfo)
                 RunService:UnbindFromRenderStep(ShowCursorBinding)
             end)
             RunService:BindToRenderStep(ShowCursorBinding, Enum.RenderPriority.Last.Value, function()
-                UserInputService.MouseIconEnabled = true -- MONOLITH: always show system cursor
+                UserInputService.MouseIconEnabled = not Library.ShowCustomCursor
 
                 Cursor.Position = UDim2.fromOffset(Mouse.X, Mouse.Y)
-                Cursor.Visible = false -- MONOLITH: always hide custom cursor
+                Cursor.Visible = Library.ShowCustomCursor == true
 
                 if not (Library.Toggled and ScreenGui and ScreenGui.Parent) then
                     UserInputService.MouseIconEnabled = OldMouseIconEnabled
@@ -9270,6 +9359,11 @@ function Library:CreateWindow(WindowInfo)
                 end
             end)
         elseif not Library.Toggled then
+            UserInputService.MouseIconEnabled = true
+            if Cursor then Cursor.Visible = false end
+            pcall(function()
+                RunService:UnbindFromRenderStep(Library.ShowCursorBinding)
+            end)
             TooltipLabel.Visible = false
 
             for _, Option in Library.Options do
