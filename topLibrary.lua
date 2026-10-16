@@ -5545,13 +5545,10 @@ do
         Dropdown.ClearPlayers = Dropdown.ClearSelection
 
         function Dropdown:SetValue(Value)
-            local valuesChanged = false -- 新しい値が追加されたかを検知するフラグ
-
             if Info.Multi then
                 local Table = {}
 
-                -- 【修正1】 pairs を追加してエラーを防止
-                for Val, Active in pairs(Value or {}) do
+                for Val, Active in Value or {} do
                     if typeof(Active) ~= "boolean" then
                         local target = Active
                         if Info.SpecialType == "Player" then
@@ -5559,7 +5556,6 @@ do
                             if matched then
                                 if not table.find(Dropdown.Values, matched) then
                                     table.insert(Dropdown.Values, matched)
-                                    valuesChanged = true -- 追加されたことを記録
                                 end
                                 Table[matched] = true
                                 local pObj = Dropdown:ResolvePlayerInstance(target) or Dropdown:ResolvePlayerInstance(matched)
@@ -5577,7 +5573,6 @@ do
                             if matched then
                                 if not table.find(Dropdown.Values, matched) then
                                     table.insert(Dropdown.Values, matched)
-                                    valuesChanged = true -- 追加されたことを記録
                                 end
                                 Table[matched] = true
                                 local pObj = Dropdown:ResolvePlayerInstance(Val) or Dropdown:ResolvePlayerInstance(matched)
@@ -5599,7 +5594,6 @@ do
                     if matched then
                         if not table.find(Dropdown.Values, matched) then
                             table.insert(Dropdown.Values, matched)
-                            valuesChanged = true -- 追加されたことを記録
                         end
                         Dropdown.Value = matched
                     else
@@ -5610,11 +5604,6 @@ do
                 elseif not Value then
                     Dropdown.Value = nil
                 end
-            end
-
-            -- 【修正2】 リストに新しいプレイヤーが追加されたら、強制的にUIを作り直す
-            if valuesChanged then
-                Dropdown:BuildDropdownList()
             end
 
             Dropdown:Display()
@@ -5725,15 +5714,14 @@ do
             Dropdown.Values = Values
             Dropdown:BuildDropdownList()
 
-            -- 無駄なSetValueによる値の破壊を防ぎ、直接UIの見た目(色)を更新する
-            Dropdown:Display()
-            for _, Table in pairs(Buttons) do
-                Table:UpdateButton()
-            end
-            if not Dropdown.Disabled then
-                Library:UpdateDependencyBoxes()
-                Library:SafeCallback(Dropdown.Callback, Dropdown.Value)
-                Library:SafeCallback(Dropdown.Changed, Dropdown.Value)
+            if Info.Multi then
+                Dropdown:SetValue(currentVal)
+            else
+                if currentVal ~= nil then
+                    Dropdown:SetValue(currentVal)
+                else
+                    Dropdown:SetValue(nil)
+                end
             end
         end
         function Dropdown:AddValues(Values)
