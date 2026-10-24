@@ -649,18 +649,32 @@ local function Round(Value, Rounding)
     return tonumber(string.format("%." .. Rounding .. "f", Value))
 end
 
-local function GetPlayers(ExcludeLocalPlayer: boolean?)
+local function FormatPlayer(Player)
+    if typeof(Player) == "Instance" and Player:IsA("Player") then
+        return string.format("%s (@%s)", Player.DisplayName, Player.Name)
+    end
+    return tostring(Player)
+end
+
+local function GetPlayers(ExcludeLocalPlayer: boolean?, IgnorePlayer: Player?)
     local PlayerList = {}
-    
+
     for _, Player in ipairs(Players:GetPlayers()) do
         if ExcludeLocalPlayer and Player == LocalPlayer then
             continue
         end
-        table.insert(PlayerList, Player.DisplayName .. " (" .. Player.Name .. ")")
+        if IgnorePlayer and Player == IgnorePlayer then
+            continue
+        end
+        table.insert(PlayerList, Player)
     end
 
     table.sort(PlayerList, function(a, b)
-        return a:lower() < b:lower()
+        local da, db = a.DisplayName:lower(), b.DisplayName:lower()
+        if da == db then
+            return a.Name:lower() < b.Name:lower()
+        end
+        return da < db
     end)
 
     return PlayerList
@@ -4932,26 +4946,15 @@ do
         if Info.SpecialType == "Player" then
             Info.Values = GetPlayers(Info.ExcludeLocalPlayer)
             Info.AllowNull = true
-            
-            -- Cleaned English comment
-            local function playerFormatter(v)
-                -- Cleaned English comment
-                local plrObj = typeof(v) == "Instance" and v or game:GetService("Players"):FindFirstChild(tostring(v))
-                if plrObj and plrObj:IsA("Player") then
-                    return plrObj.DisplayName .. " (" .. plrObj.Name .. ")"
-                end
-                return tostring(v)
-            end
-            
-            -- Cleaned English comment
+
+            -- Values and selection keys are always Player instances; only the label is formatted.
             if not Info.FormatListValue then
-                Info.FormatListValue = playerFormatter
+                Info.FormatListValue = FormatPlayer
             end
             if not Info.FormatDisplayValue then
-                Info.FormatDisplayValue = playerFormatter
+                Info.FormatDisplayValue = FormatPlayer
             end
-            -- Cleaned English comment
-            
+
         elseif Info.SpecialType == "Team" then
             Info.Values = GetTeams()
             Info.AllowNull = true
@@ -4966,6 +4969,7 @@ do
 
             SpecialType = Info.SpecialType,
             ExcludeLocalPlayer = Info.ExcludeLocalPlayer,
+            RejoinNotify = Info.RejoinNotify,
 
             Tooltip = Info.Tooltip,
             DisabledTooltip = Info.DisabledTooltip,
@@ -5108,12 +5112,14 @@ do
             ArrowImage.ImageTransparency = Dropdown.Disabled and 0.8 or MenuTable.Active and 0 or 0.5
         end
 
+        local IsPlayerDropdown = Info.SpecialType == "Player"
+
         function Dropdown:ExtractPlayerName(target)
             if typeof(target) == "Instance" and target:IsA("Player") then
                 return target.Name
             end
             local str = tostring(target)
-            local nameInParens = str:match("%(([^%)]+)%)%s*$")
+            local nameInParens = str:match("%(@?([^%)]+)%)%s*$")
             if nameInParens and nameInParens ~= "" then
                 return nameInParens
             end
@@ -5125,84 +5131,69 @@ do
         end
 
         function Dropdown:ResolvePlayerInstance(target)
-            if typeof(target) == "Instance" and target:IsA("Player") then
-                return target
+            if target == nil then
+                return nil
             end
+            if typeof(target) == "Instance" then
+                return target:IsA("Player") and target or nil
+            end
+            if typeof(target) == "number" then
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player.UserId == target then
+                        return player
+                    end
+                end
+                return nil
+            end
+
             local name = Dropdown:ExtractPlayerName(target)
             local p = Players:FindFirstChild(name)
             if p and p:IsA("Player") then
                 return p
             end
-            if typeof(target) == "number" or tonumber(target) then
-                local numId = tonumber(target)
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player.UserId == numId then
-                        return player
-                    end
+            local lowered = name:lower()
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player.Name:lower() == lowered then
+                    return player
                 end
             end
             return nil
         end
 
         function Dropdown:MatchesPlayer(key, playerOrValue)
-            if key == playerOrValue then
-                return true
-            end
             local p1 = Dropdown:ResolvePlayerInstance(key)
             local p2 = Dropdown:ResolvePlayerInstance(playerOrValue)
-            if p1 and p2 and p1 == p2 then
-                return true
-            end
-            local n1 = Dropdown:ExtractPlayerName(key)
-            local n2 = Dropdown:ExtractPlayerName(playerOrValue)
-            if n1 and n2 and n1:lower() == n2:lower() then
-                return true
-            end
-            return false
+            return p1 ~= nil and p1 == p2
         end
 
         function Dropdown:FindPlayerValue(target)
-            if not target then return nil end
-            if table.find(Dropdown.Values, target) then
-                return target
+            return Dropdown:ResolvePlayerInstance(target)
+        end
+
+        function Dropdown:EnsurePlayerListed(player)
+            if not player or table.find(Dropdown.Values, player) then
+                return false
             end
-            local targetName = Dropdown:ExtractPlayerName(target):lower()
-            for _, val in ipairs(Dropdown.Values) do
-                if Dropdown:ExtractPlayerName(val):lower() == targetName then
-                    return val
+            table.insert(Dropdown.Values, player)
+            table.sort(Dropdown.Values, function(a, b)
+                local da, db = a.DisplayName:lower(), b.DisplayName:lower()
+                if da == db then
+                    return a.Name:lower() < b.Name:lower()
                 end
-            end
-            local p = Dropdown:ResolvePlayerInstance(target)
-            if p then
-                local formatted = p.DisplayName .. " (" .. p.Name .. ")"
-                return formatted
-            end
-            return tostring(target)
+                return da < db
+            end)
+            return true
         end
 
         function Dropdown:IsPlayerSelected(playerOrName)
-            if Info.Multi then
-                if typeof(Dropdown.Value) ~= "table" then
-                    return false
-                end
-                if Dropdown.Value[playerOrName] == true then
-                    return true
-                end
-                for k, v in pairs(Dropdown.Value) do
-                    if v and Dropdown:MatchesPlayer(k, playerOrName) then
-                        return true
-                    end
-                end
+            local p = Dropdown:ResolvePlayerInstance(playerOrName)
+            if not p then
                 return false
-            else
-                if Dropdown.Value == nil then
-                    return false
-                end
-                if Dropdown.Value == playerOrName then
-                    return true
-                end
-                return Dropdown:MatchesPlayer(Dropdown.Value, playerOrName)
             end
+            if Info.Multi then
+                return typeof(Dropdown.Value) == "table" and Dropdown.Value[p] == true
+            end
+            return Dropdown.Value == p
         end
 
         function Dropdown:Display()
@@ -5214,17 +5205,7 @@ do
 
             if Info.Multi then
                 for _, Value in Dropdown.Values do
-                    local isSelected = (Dropdown.Value and Dropdown.Value[Value] == true)
-                    if not isSelected and Info.SpecialType == "Player" and typeof(Dropdown.Value) == "table" then
-                        for k, v in pairs(Dropdown.Value) do
-                            if v and Dropdown:MatchesPlayer(k, Value) then
-                                isSelected = true
-                                break
-                            end
-                        end
-                    end
-
-                    if isSelected then
+                    if Dropdown.Value and Dropdown.Value[Value] == true then
                         Str = Str
                             .. (Info.FormatDisplayValue and tostring(Info.FormatDisplayValue(Value)) or tostring(Value))
                             .. ", "
@@ -5234,12 +5215,15 @@ do
                 Str = Str:sub(1, #Str - 2)
             else
                 local DisplayValue = Dropdown.Value
-                if Info.SpecialType == "Player" and Dropdown.Value ~= nil then
-                    DisplayValue = Dropdown:FindPlayerValue(Dropdown.Value) or Dropdown.Value
-                end
-                Str = DisplayValue and tostring(DisplayValue) or ""
-                if Str ~= "" and Info.FormatDisplayValue then
-                    Str = tostring(Info.FormatDisplayValue(Str))
+                if DisplayValue ~= nil then
+                    if IsPlayerDropdown then
+                        Str = tostring(Info.FormatDisplayValue and Info.FormatDisplayValue(DisplayValue) or DisplayValue)
+                    else
+                        Str = tostring(DisplayValue)
+                        if Str ~= "" and Info.FormatDisplayValue then
+                            Str = tostring(Info.FormatDisplayValue(Str))
+                        end
+                    end
                 end
             end
 
@@ -5310,37 +5294,15 @@ do
                 local Selected
                 if Info.Multi then
                     Selected = (Dropdown.Value and Dropdown.Value[Value] == true)
-                    if not Selected and Info.SpecialType == "Player" and typeof(Dropdown.Value) == "table" then
-                        for k, v in pairs(Dropdown.Value) do
-                            if v and Dropdown:MatchesPlayer(k, Value) then
-                                Selected = true
-                                break
-                            end
-                        end
-                    end
                 else
                     Selected = Dropdown.Value == Value
-                    if not Selected and Info.SpecialType == "Player" and Dropdown.Value ~= nil then
-                        Selected = Dropdown:MatchesPlayer(Dropdown.Value, Value)
-                    end
                 end
 
                 function Table:UpdateButton()
                     if Info.Multi then
                         Selected = (Dropdown.Value and Dropdown.Value[Value] == true)
-                        if not Selected and Info.SpecialType == "Player" and typeof(Dropdown.Value) == "table" then
-                            for k, v in pairs(Dropdown.Value) do
-                                if v and Dropdown:MatchesPlayer(k, Value) then
-                                    Selected = true
-                                    break
-                                end
-                            end
-                        end
                     else
                         Selected = Dropdown.Value == Value
-                        if not Selected and Info.SpecialType == "Player" and Dropdown.Value ~= nil then
-                            Selected = Dropdown:MatchesPlayer(Dropdown.Value, Value)
-                        end
                     end
 
                     Button.BackgroundTransparency = Selected and 0 or 1
@@ -5355,13 +5317,6 @@ do
                             Selected = Try
                             if Info.Multi then
                                 Dropdown.Value[Value] = Selected and true or nil
-                                if Info.SpecialType == "Player" then
-                                    local pObj = Dropdown:ResolvePlayerInstance(Value)
-                                    if pObj then
-                                        Dropdown.Value[pObj] = Selected and true or nil
-                                        Dropdown.Value[pObj.Name] = Selected and true or nil
-                                    end
-                                end
                             else
                                 Dropdown.Value = Selected and Value or nil
                             end
@@ -5391,40 +5346,24 @@ do
 
         function Dropdown:SetPlayerSelected(playerOrName, isSelected)
             if isSelected == nil then isSelected = true end
-            local matchedVal = Dropdown:FindPlayerValue(playerOrName)
-            if not matchedVal then return end
 
-            if not table.find(Dropdown.Values, matchedVal) then
-                table.insert(Dropdown.Values, matchedVal)
+            local PlayerObj = Dropdown:ResolvePlayerInstance(playerOrName)
+            if not PlayerObj then return end
+            if isSelected and Info.ExcludeLocalPlayer and PlayerObj == LocalPlayer then return end
+
+            if isSelected and Dropdown:EnsurePlayerListed(PlayerObj) then
                 Dropdown:BuildDropdownList()
             end
-
-            local pObj = Dropdown:ResolvePlayerInstance(playerOrName) or Dropdown:ResolvePlayerInstance(matchedVal)
 
             if Info.Multi then
                 if typeof(Dropdown.Value) ~= "table" then
                     Dropdown.Value = {}
                 end
-                if isSelected then
-                    Dropdown.Value[matchedVal] = true
-                    if pObj then
-                        Dropdown.Value[pObj] = true
-                        Dropdown.Value[pObj.Name] = true
-                    end
-                else
-                    Dropdown.Value[matchedVal] = nil
-                    if pObj then
-                        Dropdown.Value[pObj] = nil
-                        Dropdown.Value[pObj.Name] = nil
-                    end
-                    for k, _ in pairs(Dropdown.Value) do
-                        if Dropdown:MatchesPlayer(k, matchedVal) then
-                            Dropdown.Value[k] = nil
-                        end
-                    end
-                end
-            else
-                Dropdown.Value = isSelected and matchedVal or nil
+                Dropdown.Value[PlayerObj] = isSelected and true or nil
+            elseif isSelected then
+                Dropdown.Value = PlayerObj
+            elseif Dropdown.Value == PlayerObj then
+                Dropdown.Value = nil
             end
 
             Dropdown:Display()
@@ -5450,21 +5389,13 @@ do
             if Info.Multi then
                 if typeof(Dropdown.Value) == "table" then
                     for k, v in pairs(Dropdown.Value) do
-                        if v then
-                            local p = Dropdown:ResolvePlayerInstance(k)
-                            if p and not table.find(result, p) then
-                                table.insert(result, p)
-                            elseif not p and not table.find(result, k) then
-                                table.insert(result, k)
-                            end
+                        if v and typeof(k) == "Instance" and k:IsA("Player") and k.Parent then
+                            table.insert(result, k)
                         end
                     end
                 end
-            else
-                if Dropdown.Value ~= nil then
-                    local p = Dropdown:ResolvePlayerInstance(Dropdown.Value)
-                    table.insert(result, p or Dropdown.Value)
-                end
+            elseif typeof(Dropdown.Value) == "Instance" and Dropdown.Value.Parent then
+                table.insert(result, Dropdown.Value)
             end
             return result
         end
@@ -5496,17 +5427,10 @@ do
                     end
 
                     if isSel and target then
-                        local matchedVal = Dropdown:FindPlayerValue(target)
-                        if matchedVal then
-                            if not table.find(Dropdown.Values, matchedVal) then
-                                table.insert(Dropdown.Values, matchedVal)
-                            end
-                            newTable[matchedVal] = true
-                            local pObj = Dropdown:ResolvePlayerInstance(target) or Dropdown:ResolvePlayerInstance(matchedVal)
-                            if pObj then
-                                newTable[pObj] = true
-                                newTable[pObj.Name] = true
-                            end
+                        local PlayerObj = Dropdown:ResolvePlayerInstance(target)
+                        if PlayerObj and not (Info.ExcludeLocalPlayer and PlayerObj == LocalPlayer) then
+                            Dropdown:EnsurePlayerListed(PlayerObj)
+                            newTable[PlayerObj] = true
                         end
                     end
                 end
@@ -5545,57 +5469,45 @@ do
         Dropdown.ClearPlayers = Dropdown.ClearSelection
 
         function Dropdown:SetValue(Value)
+            local ListChanged = false
+
             if Info.Multi then
                 local Table = {}
 
                 for Val, Active in Value or {} do
-                    if typeof(Active) ~= "boolean" then
-                        local target = Active
-                        if Info.SpecialType == "Player" then
-                            local matched = Dropdown:FindPlayerValue(target)
-                            if matched then
-                                if not table.find(Dropdown.Values, matched) then
-                                    table.insert(Dropdown.Values, matched)
-                                end
-                                Table[matched] = true
-                                local pObj = Dropdown:ResolvePlayerInstance(target) or Dropdown:ResolvePlayerInstance(matched)
-                                if pObj then
-                                    Table[pObj] = true
-                                    Table[pObj.Name] = true
-                                end
-                            end
+                    if IsPlayerDropdown then
+                        local Target, IsSel
+                        if typeof(Active) ~= "boolean" then
+                            Target, IsSel = Active, true
                         else
-                            Table[target] = true
+                            Target, IsSel = Val, Active
                         end
-                    elseif Active then
-                        if Info.SpecialType == "Player" then
-                            local matched = Dropdown:FindPlayerValue(Val)
-                            if matched then
-                                if not table.find(Dropdown.Values, matched) then
-                                    table.insert(Dropdown.Values, matched)
+
+                        if IsSel then
+                            local PlayerObj = Dropdown:ResolvePlayerInstance(Target)
+                            if PlayerObj and not (Info.ExcludeLocalPlayer and PlayerObj == LocalPlayer) then
+                                if Dropdown:EnsurePlayerListed(PlayerObj) then
+                                    ListChanged = true
                                 end
-                                Table[matched] = true
-                                local pObj = Dropdown:ResolvePlayerInstance(Val) or Dropdown:ResolvePlayerInstance(matched)
-                                if pObj then
-                                    Table[pObj] = true
-                                    Table[pObj.Name] = true
-                                end
+                                Table[PlayerObj] = true
                             end
-                        elseif table.find(Dropdown.Values, Val) then
-                            Table[Val] = true
                         end
+                    elseif typeof(Active) ~= "boolean" then
+                        Table[Active] = true
+                    elseif Active and table.find(Dropdown.Values, Val) then
+                        Table[Val] = true
                     end
                 end
 
                 Dropdown.Value = Table
             else
-                if Info.SpecialType == "Player" and Value ~= nil then
-                    local matched = Dropdown:FindPlayerValue(Value)
-                    if matched then
-                        if not table.find(Dropdown.Values, matched) then
-                            table.insert(Dropdown.Values, matched)
+                if IsPlayerDropdown then
+                    local PlayerObj = Value ~= nil and Dropdown:ResolvePlayerInstance(Value) or nil
+                    if PlayerObj and not (Info.ExcludeLocalPlayer and PlayerObj == LocalPlayer) then
+                        if Dropdown:EnsurePlayerListed(PlayerObj) then
+                            ListChanged = true
                         end
-                        Dropdown.Value = matched
+                        Dropdown.Value = PlayerObj
                     else
                         Dropdown.Value = nil
                     end
@@ -5604,6 +5516,10 @@ do
                 elseif not Value then
                     Dropdown.Value = nil
                 end
+            end
+
+            if ListChanged then
+                Dropdown:BuildDropdownList()
             end
 
             Dropdown:Display()
@@ -5627,110 +5543,73 @@ do
 
             local currentVal = Dropdown.Value
 
-            if Info.Multi then
+            if IsPlayerDropdown then
+                -- Keep only selections that still exist in the new Player list.
+                local InList = {}
+                for _, v in ipairs(Values) do
+                    InList[v] = true
+                end
+
+                if Info.Multi then
+                    local updatedVal = {}
+                    if type(currentVal) == "table" then
+                        for k, v in pairs(currentVal) do
+                            if v then
+                                local PlayerObj = Dropdown:ResolvePlayerInstance(k)
+                                if PlayerObj and InList[PlayerObj] then
+                                    updatedVal[PlayerObj] = true
+                                end
+                            end
+                        end
+                    end
+                    currentVal = updatedVal
+                else
+                    local PlayerObj = currentVal ~= nil and Dropdown:ResolvePlayerInstance(currentVal) or nil
+                    currentVal = (PlayerObj and InList[PlayerObj]) and PlayerObj or nil
+                end
+            elseif Info.Multi then
                 local updatedVal = {}
                 if type(currentVal) == "table" then
                     for k, v in pairs(currentVal) do
-                        if v then
-                            local foundNew = nil
-                            local curName = Dropdown:ExtractPlayerName(k)
-
-                            for _, val in ipairs(Values) do
-                                if val == k then
-                                    foundNew = val
-                                    break
-                                elseif Info.SpecialType == "Player" then
-                                    if Dropdown:ExtractPlayerName(val) == curName then
-                                        foundNew = val
-                                        break
-                                    end
-                                end
-                            end
-
-                            if foundNew ~= nil then
-                                updatedVal[foundNew] = true
-                                local pObj = Dropdown:ResolvePlayerInstance(foundNew)
-                                if pObj then
-                                    updatedVal[pObj] = true
-                                    updatedVal[pObj.Name] = true
-                                end
-                            elseif Info.SpecialType == "Player" then
-                                local savedStr = k
-                                if typeof(k) == "Instance" and k:IsA("Player") then
-                                    savedStr = k.DisplayName .. " (" .. k.Name .. ")"
-                                end
-                                if not table.find(Values, savedStr) then
-                                    table.insert(Values, savedStr)
-                                end
-                                updatedVal[savedStr] = true
-                                local pObj = Dropdown:ResolvePlayerInstance(k)
-                                if pObj then
-                                    updatedVal[pObj] = true
-                                    updatedVal[pObj.Name] = true
-                                end
-                            end
+                        if v and table.find(Values, k) then
+                            updatedVal[k] = true
                         end
                     end
                 end
-                Dropdown.Value = updatedVal
                 currentVal = updatedVal
             else
-                if currentVal ~= nil then
-                    local foundNew = nil
-                    local curName = Dropdown:ExtractPlayerName(currentVal)
-
-                    for _, val in ipairs(Values) do
-                        if val == currentVal then
-                            foundNew = val
-                            break
-                        elseif Info.SpecialType == "Player" then
-                            if Dropdown:ExtractPlayerName(val) == curName then
-                                foundNew = val
-                                break
-                            end
-                        end
-                    end
-
-                    if foundNew ~= nil then
-                        Dropdown.Value = foundNew
-                        currentVal = foundNew
-                    elseif Info.SpecialType == "Player" then
-                        local savedStr = currentVal
-                        if typeof(currentVal) == "Instance" and currentVal:IsA("Player") then
-                            savedStr = currentVal.DisplayName .. " (" .. currentVal.Name .. ")"
-                        end
-                        if not table.find(Values, savedStr) then
-                            table.insert(Values, savedStr)
-                        end
-                        Dropdown.Value = savedStr
-                        currentVal = savedStr
-                    else
-                        Dropdown.Value = nil
-                        currentVal = nil
-                    end
+                if currentVal ~= nil and not table.find(Values, currentVal) then
+                    currentVal = nil
                 end
             end
 
+            Dropdown.Value = currentVal
             Dropdown.Values = Values
             Dropdown:BuildDropdownList()
 
-            if Info.Multi then
-                Dropdown:SetValue(currentVal)
-            else
-                if currentVal ~= nil then
-                    Dropdown:SetValue(currentVal)
-                else
-                    Dropdown:SetValue(nil)
-                end
-            end
+            Dropdown:SetValue(currentVal)
         end
         function Dropdown:AddValues(Values)
             if typeof(Values) == "table" then
                 for _, val in Values do
-                    table.insert(Dropdown.Values, val)
+                    if IsPlayerDropdown then
+                        local PlayerObj = Dropdown:ResolvePlayerInstance(val)
+                        if PlayerObj then
+                            Dropdown:EnsurePlayerListed(PlayerObj)
+                        end
+                    else
+                        table.insert(Dropdown.Values, val)
+                    end
                 end
-            elseif typeof(Values) == "string" then
-                table.insert(Dropdown.Values, Values)
+            elseif typeof(Values) == "string" or (IsPlayerDropdown and typeof(Values) == "Instance") then
+                if IsPlayerDropdown then
+                    local PlayerObj = Dropdown:ResolvePlayerInstance(Values)
+                    if PlayerObj then
+                        Dropdown:EnsurePlayerListed(PlayerObj)
+                    end
+                else
+                    table.insert(Dropdown.Values, Values)
+                end
             else
                 return
             end
@@ -5794,6 +5673,24 @@ do
 
         if SearchBox then
             SearchBox:GetPropertyChangedSignal("Text"):Connect(Dropdown.BuildDropdownList)
+        end
+
+        if IsPlayerDropdown and Info.Default ~= nil then
+            local DefaultTargets = {}
+            if typeof(Info.Default) == "table" then
+                for _, Target in next, Info.Default do
+                    local DefaultPlayer = Dropdown:ResolvePlayerInstance(Target)
+                    if DefaultPlayer then
+                        table.insert(DefaultTargets, DefaultPlayer)
+                    end
+                end
+            else
+                local DefaultPlayer = Dropdown:ResolvePlayerInstance(Info.Default)
+                if DefaultPlayer then
+                    table.insert(DefaultTargets, DefaultPlayer)
+                end
+            end
+            Info.Default = DefaultTargets
         end
 
         local Defaults = {}
@@ -10742,16 +10639,95 @@ function Library:CreateLoading(LoadingInfo)
     return Loading
 end
 
-local function OnPlayerChange()
+-- Player dropdowns hold Player instances only (Values and selection keys).
+-- Selected players that leave are remembered by UserId and restored on rejoin.
+Library.PlayerRejoinCache = {}
+Library.PlayerRejoinExpireSeconds = 600
+
+local function IsPlayerDropdown(Dropdown)
+    return typeof(Dropdown) == "table" and Dropdown.Type == "Dropdown" and Dropdown.SpecialType == "Player"
+end
+
+local function RefreshPlayerDropdowns(IgnorePlayer)
+    local PlayerList = GetPlayers(false, IgnorePlayer)
+    local ExcludedPlayerList = GetPlayers(true, IgnorePlayer)
+
+    for _, Dropdown in Options do
+        if IsPlayerDropdown(Dropdown) then
+            Dropdown:SetValues(Dropdown.ExcludeLocalPlayer and ExcludedPlayerList or PlayerList)
+        end
+    end
+end
+
+local function OnPlayerRemoving(Player)
     if Library.Unloaded then
         return
     end
 
-    local PlayerList, ExcludedPlayerList = GetPlayers(), GetPlayers(true)
+    local Affected = {}
+    local ShouldNotify = false
+
     for _, Dropdown in Options do
-        if Dropdown.Type == "Dropdown" and Dropdown.SpecialType == "Player" then
-            Dropdown:SetValues(Dropdown.ExcludeLocalPlayer and ExcludedPlayerList or PlayerList)
+        if IsPlayerDropdown(Dropdown) and Dropdown:IsPlayerSelected(Player) then
+            table.insert(Affected, Dropdown)
+            if Dropdown.RejoinNotify then
+                ShouldNotify = true
+            end
         end
+    end
+
+    if #Affected > 0 then
+        local UserId = Player.UserId
+        local Entry = { Dropdowns = Affected }
+        Library.PlayerRejoinCache[UserId] = Entry
+
+        task.delay(Library.PlayerRejoinExpireSeconds, function()
+            if Library.PlayerRejoinCache[UserId] == Entry then
+                Library.PlayerRejoinCache[UserId] = nil
+            end
+        end)
+
+        if ShouldNotify then
+            Library:Notify({
+                Title = "Target Left",
+                Description = FormatPlayer(Player) .. " left the server.",
+                Time = 4,
+            })
+        end
+    end
+
+    RefreshPlayerDropdowns(Player)
+end
+
+local function OnPlayerAdded(Player)
+    if Library.Unloaded then
+        return
+    end
+
+    RefreshPlayerDropdowns()
+
+    local Entry = Library.PlayerRejoinCache[Player.UserId]
+    if not Entry then
+        return
+    end
+    Library.PlayerRejoinCache[Player.UserId] = nil
+
+    local ShouldNotify = false
+    for _, Dropdown in Entry.Dropdowns do
+        local Ok = pcall(function()
+            Dropdown:SetPlayerSelected(Player, true)
+        end)
+        if Ok and Dropdown.RejoinNotify then
+            ShouldNotify = true
+        end
+    end
+
+    if ShouldNotify then
+        Library:Notify({
+            Title = "Target Rejoined",
+            Description = FormatPlayer(Player) .. " rejoined, restored to targets!",
+            Time = 5,
+        })
     end
 end
 
@@ -10768,8 +10744,8 @@ local function OnTeamChange()
     end
 end
 
-Library:GiveSignal(Players.PlayerAdded:Connect(OnPlayerChange))
-Library:GiveSignal(Players.PlayerRemoving:Connect(OnPlayerChange))
+Library:GiveSignal(Players.PlayerAdded:Connect(OnPlayerAdded))
+Library:GiveSignal(Players.PlayerRemoving:Connect(OnPlayerRemoving))
 
 Library:GiveSignal(Teams.ChildAdded:Connect(OnTeamChange))
 Library:GiveSignal(Teams.ChildRemoved:Connect(OnTeamChange))
