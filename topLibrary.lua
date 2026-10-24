@@ -10681,11 +10681,14 @@ local function OnPlayerRemoving(Player)
         local Entry = { Dropdowns = Affected }
         Library.PlayerRejoinCache[UserId] = Entry
 
+        --[[
         task.delay(Library.PlayerRejoinExpireSeconds, function()
             if Library.PlayerRejoinCache[UserId] == Entry then
                 Library.PlayerRejoinCache[UserId] = nil
             end
         end)
+
+        --]]
 
         if ShouldNotify then
             Library:Notify({
