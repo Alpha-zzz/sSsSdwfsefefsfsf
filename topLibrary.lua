@@ -7532,6 +7532,41 @@ function Library:CreateWindow(WindowInfo)
             })
         end
 
+        -- [ BLACKLIST BUTTON ]
+        do
+            local BlacklistButton = New("TextButton", {
+                BackgroundColor3 = "MainColor",
+                BackgroundTransparency = 1,
+                Size = UDim2.fromOffset(28, 28),
+                Text = "",
+                Parent = RightWrapper,
+            })
+            New("UIFlexItem", { FlexMode = Enum.UIFlexMode.None, Parent = BlacklistButton })
+            table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, WindowInfo.CornerRadius), Parent = BlacklistButton }))
+            New("UIStroke", { Color = "OutlineColor", Parent = BlacklistButton })
+            local BanIcon = Library:GetIcon("prohibit")
+            if BanIcon then
+                New("ImageLabel", {
+                    BackgroundTransparency = 1,
+                    Image = BanIcon.Url,
+                    ImageColor3 = "FontColor",
+                    ImageRectOffset = BanIcon.ImageRectOffset,
+                    ImageRectSize = BanIcon.ImageRectSize,
+                    ImageTransparency = 0.5,
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position = UDim2.fromScale(0.5, 0.5),
+                    Size = UDim2.fromOffset(16, 16),
+                    Parent = BlacklistButton,
+                })
+            end
+            Library.BlacklistButton = BlacklistButton
+            BlacklistButton.MouseButton1Click:Connect(function()
+                if Library.ToggleBlacklistPanel then
+                    Library:ToggleBlacklistPanel()
+                end
+            end)
+        end
+
         if not WindowInfo.DisableNotificationBell then
             local BellButton = New("TextButton", {
                 BackgroundColor3 = "MainColor",
@@ -7610,41 +7645,6 @@ function Library:CreateWindow(WindowInfo)
                 -- Focus search if history opened
                 if Library.NotificationHistoryOpen and Library.NotificationHistorySearchBox then
                     Library.NotificationHistorySearchBox:CaptureFocus()
-                end
-            end)
-        end
-
-        -- [ BLACKLIST BUTTON ]
-        do
-            local BlacklistButton = New("TextButton", {
-                BackgroundColor3 = "MainColor",
-                BackgroundTransparency = 1,
-                Size = UDim2.fromOffset(28, 28),
-                Text = "",
-                Parent = RightWrapper,
-            })
-            New("UIFlexItem", { FlexMode = Enum.UIFlexMode.None, Parent = BlacklistButton })
-            table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, WindowInfo.CornerRadius), Parent = BlacklistButton }))
-            New("UIStroke", { Color = "OutlineColor", Parent = BlacklistButton })
-            local BanIcon = Library:GetIcon("prohibit")
-            if BanIcon then
-                New("ImageLabel", {
-                    BackgroundTransparency = 1,
-                    Image = BanIcon.Url,
-                    ImageColor3 = "FontColor",
-                    ImageRectOffset = BanIcon.ImageRectOffset,
-                    ImageRectSize = BanIcon.ImageRectSize,
-                    ImageTransparency = 0.5,
-                    AnchorPoint = Vector2.new(0.5, 0.5),
-                    Position = UDim2.fromScale(0.5, 0.5),
-                    Size = UDim2.fromOffset(16, 16),
-                    Parent = BlacklistButton,
-                })
-            end
-            Library.BlacklistButton = BlacklistButton
-            BlacklistButton.MouseButton1Click:Connect(function()
-                if Library.ToggleBlacklistPanel then
-                    Library:ToggleBlacklistPanel()
                 end
             end)
         end
@@ -10039,7 +10039,7 @@ function Library:CreateWindow(WindowInfo)
             Size = UDim2.new(1, 0, 0, 34),
             Parent = BLFrame,
         })
-        New("UIPadding", { PaddingLeft = UDim.new(0,7), PaddingRight = UDim.new(0,7), PaddingTop = UDim.new(0,4), PaddingBottom = UDim.new(0,4), Parent = InputRow })
+        New("UIPadding", { PaddingLeft=UDim.new(0,7), PaddingRight=UDim.new(0,7), PaddingTop=UDim.new(0,4), PaddingBottom=UDim.new(0,4), Parent=InputRow })
 
         local BLInput = New("TextBox", {
             BackgroundColor3 = "MainColor",
@@ -10051,7 +10051,7 @@ function Library:CreateWindow(WindowInfo)
         })
         table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = BLInput }))
         New("UIStroke", { Color = "OutlineColor", Parent = BLInput })
-        New("UIPadding", { PaddingLeft = UDim.new(0,8), PaddingRight = UDim.new(0,8), PaddingTop = UDim.new(0,4), PaddingBottom = UDim.new(0,4), Parent = BLInput })
+        New("UIPadding", { PaddingLeft=UDim.new(0,8), PaddingRight=UDim.new(0,8), PaddingTop=UDim.new(0,4), PaddingBottom=UDim.new(0,4), Parent=BLInput })
 
         local BLAddBtn = New("TextButton", {
             BackgroundColor3 = "AccentColor",
@@ -10076,7 +10076,7 @@ function Library:CreateWindow(WindowInfo)
             Parent = BLFrame,
         })
         New("UIListLayout", { Padding = UDim.new(0, 4), Parent = BLList })
-        New("UIPadding", { PaddingBottom=UDim.new(0,7), PaddingLeft=UDim.new(0,7), PaddingRight=UDim.new(0,7), PaddingTop=UDim.new(0,4), Parent = BLList })
+        New("UIPadding", { PaddingBottom=UDim.new(0,7), PaddingLeft=UDim.new(0,7), PaddingRight=UDim.new(0,7), PaddingTop=UDim.new(0,4), Parent=BLList })
 
         Library.BlacklistPanelFrame  = BLFrame
         Library.BlacklistPanelInput  = BLInput
