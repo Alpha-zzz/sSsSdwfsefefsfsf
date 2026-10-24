@@ -7539,61 +7539,41 @@ function Library:CreateWindow(WindowInfo)
             })
         end
 
-        -- [ BLACKLIST BUTTON ] - appears between search bar and bell
+        -- [ BLACKLIST BUTTON ] between search and bell
         do
             local BlacklistButton = New("TextButton", {
                 BackgroundColor3 = "MainColor",
                 BackgroundTransparency = 1,
                 Size = UDim2.fromOffset(28, 28),
-                Text = "",
+                Text = "BL",
+                TextColor3 = "FontColor",
+                TextSize = 11,
                 Parent = RightWrapper,
             })
-            New("UIFlexItem", {
-                FlexMode = Enum.UIFlexMode.None,
+            New("UIFlexItem", { FlexMode = Enum.UIFlexMode.None, Parent = BlacklistButton })
+            table.insert(Library.Corners, New("UICorner", {
+                CornerRadius = UDim.new(0, WindowInfo.CornerRadius),
                 Parent = BlacklistButton,
-            })
-            table.insert(
-                Library.Corners,
-                New("UICorner", {
-                    CornerRadius = UDim.new(0, WindowInfo.CornerRadius),
-                    Parent = BlacklistButton,
-                })
-            )
-            New("UIStroke", {
-                Color = "OutlineColor",
-                Parent = BlacklistButton,
-            })
-
-            -- Try icon; fall back to text label if unavailable
-            local BanIcon = Library:GetCustomIcon("list")
-            if BanIcon then
+            }))
+            New("UIStroke", { Color = "OutlineColor", Parent = BlacklistButton })
+            -- Overlay icon if the Lucide set has 'list'
+            local _BanIcon = Library:GetCustomIcon("list")
+            if _BanIcon then
+                BlacklistButton.Text = ""
                 New("ImageLabel", {
                     BackgroundTransparency = 1,
-                    Image = BanIcon.Url,
+                    Image = _BanIcon.Url,
                     ImageColor3 = "FontColor",
-                    ImageRectOffset = BanIcon.ImageRectOffset,
-                    ImageRectSize = BanIcon.ImageRectSize,
+                    ImageRectOffset = _BanIcon.ImageRectOffset,
+                    ImageRectSize = _BanIcon.ImageRectSize,
                     ImageTransparency = 0.3,
                     AnchorPoint = Vector2.new(0.5, 0.5),
                     Position = UDim2.fromScale(0.5, 0.5),
                     Size = UDim2.fromOffset(16, 16),
                     Parent = BlacklistButton,
                 })
-            else
-                New("TextLabel", {
-                    BackgroundTransparency = 1,
-                    Size = UDim2.fromScale(1, 1),
-                    Text = "\xE2\x98\xB0",
-                    TextColor3 = "FontColor",
-                    TextSize = 14,
-                    AnchorPoint = Vector2.new(0.5, 0.5),
-                    Position = UDim2.fromScale(0.5, 0.5),
-                    Parent = BlacklistButton,
-                })
             end
-
             Library.BlacklistButton = BlacklistButton
-
             BlacklistButton.MouseButton1Click:Connect(function()
                 if Library.ToggleBlacklistPanel then
                     Library:ToggleBlacklistPanel()
@@ -9616,26 +9596,46 @@ function Library:CreateWindow(WindowInfo)
         end
         if Library.BlacklistPanelFrame then
             Library.BlacklistPanelFrame.Visible = Library.BlacklistPanelOpen
+            -- Close other menus when opening blacklist
+            if Library.BlacklistPanelOpen and Library.NotificationHistoryFrame then
+                Library.NotificationHistoryFrame.Visible = false
+                Library.NotificationHistoryOpen = false
+            end
         end
     end
 
     -- [ BLACKLIST PANEL FRAME ]
+    -- Parented to ScreenGui (NOT MainFrame) so it never intercepts clicks on the main GUI
     do
         local BLFrame = New("Frame", {
             Name = "BlacklistPanel",
             AnchorPoint = Vector2.new(1, 0),
             BackgroundColor3 = "MainColor",
-            Position = UDim2.new(1, -10, 0, 54),
-            Size = UDim2.fromOffset(280, 360),
+            Size = UDim2.fromOffset(280, 370),
             Visible = false,
-            ZIndex = 100,
-            Parent = MainFrame,
+            ZIndex = 10,
+            Parent = ScreenGui,
         })
+        table.insert(Library.Scales, New("UIScale", { Parent = BLFrame }))
         table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = BLFrame }))
         New("UIStroke", { Color = "OutlineColor", Parent = BLFrame })
 
+        -- Reposition the panel relative to the blacklist button when shown
+        local function RepositionBLFrame()
+            if Library.BlacklistButton then
+                local btn = Library.BlacklistButton
+                local absPos = btn.AbsolutePosition
+                local absSize = btn.AbsoluteSize
+                local vpSize = workspace.CurrentCamera.ViewportSize
+                local panelW = BLFrame.AbsoluteSize.X
+                local x = math.clamp(absPos.X + absSize.X/2 - panelW/2, 8, vpSize.X - panelW - 8)
+                local y = absPos.Y + absSize.Y + 6
+                BLFrame.Position = UDim2.fromOffset(math.floor(x), math.floor(y))
+            end
+        end
+
         -- Title bar
-        local BLTitle = New("TextLabel", {
+        New("TextLabel", {
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 0, 32),
             Text = "  Blacklist",
@@ -9646,10 +9646,16 @@ function Library:CreateWindow(WindowInfo)
             Parent = BLFrame,
         })
 
+        -- Divider line
+        Library:MakeLine(BLFrame, {
+            Position = UDim2.fromOffset(0, 32),
+            Size = UDim2.new(1, 0, 0, 1),
+        })
+
         -- Input row
         local BLInputRow = New("Frame", {
             BackgroundTransparency = 1,
-            Position = UDim2.fromOffset(8, 36),
+            Position = UDim2.fromOffset(8, 40),
             Size = UDim2.new(1, -16, 0, 32),
             Parent = BLFrame,
         })
@@ -9659,44 +9665,49 @@ function Library:CreateWindow(WindowInfo)
             Padding = UDim.new(0, 6),
             Parent = BLInputRow,
         })
-
         local BLInput = New("TextBox", {
-            BackgroundColor3 = "SecondaryColor",
+            BackgroundColor3 = "BackgroundColor",
             PlaceholderText = "Username or UserId...",
-            Size = UDim2.new(1, -74, 1, 0),
+            PlaceholderColor3 = "FontColor",
+            Size = UDim2.new(1, -72, 1, 0),
             TextColor3 = "FontColor",
-            TextSize = 13,
+            TextSize = 12,
             ClearTextOnFocus = false,
+            ZIndex = 11,
             Parent = BLInputRow,
         })
         table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = BLInput }))
+        New("UIStroke", { Color = "OutlineColor", Parent = BLInput })
         New("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6), Parent = BLInput })
 
         local BLAddBtn = New("TextButton", {
             BackgroundColor3 = Color3.fromRGB(80, 50, 160),
-            Size = UDim2.fromOffset(62, 30),
+            Size = UDim2.fromOffset(64, 30),
             Text = "Add",
             TextColor3 = Color3.new(1, 1, 1),
             TextSize = 13,
+            ZIndex = 11,
             Parent = BLInputRow,
         })
         table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = BLAddBtn }))
 
-        -- Scrolling list
-        local BLListContainer = New("Frame", {
-            BackgroundTransparency = 1,
-            Position = UDim2.fromOffset(0, 76),
-            Size = UDim2.new(1, 0, 1, -76),
-            Parent = BLFrame,
+        -- Divider before list
+        Library:MakeLine(BLFrame, {
+            Position = UDim2.fromOffset(0, 80),
+            Size = UDim2.new(1, 0, 0, 1),
         })
+
+        -- Scrolling list
         local BLList = New("ScrollingFrame", {
             BackgroundTransparency = 1,
-            Size = UDim2.fromScale(1, 1),
+            Position = UDim2.fromOffset(0, 82),
+            Size = UDim2.new(1, 0, 1, -82),
             CanvasSize = UDim2.fromScale(0, 0),
             AutomaticCanvasSize = Enum.AutomaticSize.Y,
             ScrollBarThickness = 4,
             ScrollBarImageColor3 = "OutlineColor",
-            Parent = BLListContainer,
+            ZIndex = 11,
+            Parent = BLFrame,
         })
         New("UIListLayout", {
             SortOrder = Enum.SortOrder.LayoutOrder,
@@ -9707,19 +9718,11 @@ function Library:CreateWindow(WindowInfo)
             PaddingLeft = UDim.new(0, 8),
             PaddingRight = UDim.new(0, 8),
             PaddingTop = UDim.new(0, 4),
+            PaddingBottom = UDim.new(0, 4),
             Parent = BLList,
         })
 
-        -- On/Off toggle row
-        local BLToggleRow = New("Frame", {
-            BackgroundTransparency = 1,
-            Position = UDim2.fromOffset(8, 72),
-            Size = UDim2.new(1, -16, 0, 0),
-            AutomaticSize = Enum.AutomaticSize.Y,
-            Parent = BLFrame,
-        })
-
-        -- Wire Add button: calls external callback if set
+        -- Wire Add button
         BLAddBtn.MouseButton1Click:Connect(function()
             local text = BLInput.Text
             if text == "" then return end
@@ -9729,11 +9732,18 @@ function Library:CreateWindow(WindowInfo)
             end
         end)
 
-        Library.BlacklistPanelOpen = false
+        -- Store references
         Library.BlacklistPanelFrame = BLFrame
         Library.BlacklistPanelInput = BLInput
         Library.BlacklistPanelAddBtn = BLAddBtn
         Library.BlacklistPanelList = BLList
+
+        -- Reposition each time it becomes visible
+        BLFrame:GetPropertyChangedSignal("Visible"):Connect(function()
+            if BLFrame.Visible then
+                RepositionBLFrame()
+            end
+        end)
     end
 
     function Window:Toggle(Value: boolean?)
