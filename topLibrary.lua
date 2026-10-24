@@ -7614,6 +7614,41 @@ function Library:CreateWindow(WindowInfo)
             end)
         end
 
+        -- [ BLACKLIST BUTTON ]
+        do
+            local BlacklistButton = New("TextButton", {
+                BackgroundColor3 = "MainColor",
+                BackgroundTransparency = 1,
+                Size = UDim2.fromOffset(28, 28),
+                Text = "",
+                Parent = RightWrapper,
+            })
+            New("UIFlexItem", { FlexMode = Enum.UIFlexMode.None, Parent = BlacklistButton })
+            table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, WindowInfo.CornerRadius), Parent = BlacklistButton }))
+            New("UIStroke", { Color = "OutlineColor", Parent = BlacklistButton })
+            local BanIcon = Library:GetIcon("prohibit")
+            if BanIcon then
+                New("ImageLabel", {
+                    BackgroundTransparency = 1,
+                    Image = BanIcon.Url,
+                    ImageColor3 = "FontColor",
+                    ImageRectOffset = BanIcon.ImageRectOffset,
+                    ImageRectSize = BanIcon.ImageRectSize,
+                    ImageTransparency = 0.5,
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position = UDim2.fromScale(0.5, 0.5),
+                    Size = UDim2.fromOffset(16, 16),
+                    Parent = BlacklistButton,
+                })
+            end
+            Library.BlacklistButton = BlacklistButton
+            BlacklistButton.MouseButton1Click:Connect(function()
+                if Library.ToggleBlacklistPanel then
+                    Library:ToggleBlacklistPanel()
+                end
+            end)
+        end
+
         do
             local CloseBtn = New("TextButton", {
                 AnchorPoint  = Vector2.new(1, 0.5),
@@ -9960,6 +9995,95 @@ function Library:CreateWindow(WindowInfo)
         Library.NotificationHistorySearchBox = HistorySearchBox
     end
 
+    -- [ BLACKLIST PANEL ]
+    Library.BlacklistPanelOpen = false
+
+    function Library:ToggleBlacklistPanel(State)
+        if typeof(State) == "boolean" then
+            Library.BlacklistPanelOpen = State
+        else
+            Library.BlacklistPanelOpen = not Library.BlacklistPanelOpen
+        end
+        if Library.BlacklistPanelFrame then
+            Library.BlacklistPanelFrame.Visible = Library.BlacklistPanelOpen
+        end
+    end
+
+    do
+        local BLFrame = New("Frame", {
+            BackgroundColor3 = "BackgroundColor",
+            Position = UDim2.new(1, -310, 0, 55),
+            Size = UDim2.fromOffset(300, 360),
+            Visible = false,
+            ZIndex = 10,
+            Parent = Library.Floats or ScreenGui,
+        })
+        table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, Library.CornerRadius), Parent = BLFrame }))
+        table.insert(Library.Scales, New("UIScale", { Parent = BLFrame }))
+        Library:AddOutline(BLFrame)
+        Library:MakeLine(BLFrame, { Position = UDim2.fromOffset(0, 34), Size = UDim2.new(1, 0, 0, 1) })
+
+        local BLTitleLabel = New("TextLabel", {
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 34),
+            Text = "Blacklist",
+            TextSize = 15,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = BLFrame,
+        })
+        New("UIPadding", { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12), Parent = BLTitleLabel })
+
+        local InputRow = New("Frame", {
+            BackgroundTransparency = 1,
+            Position = UDim2.fromOffset(0, 38),
+            Size = UDim2.new(1, 0, 0, 34),
+            Parent = BLFrame,
+        })
+        New("UIPadding", { PaddingLeft = UDim.new(0,7), PaddingRight = UDim.new(0,7), PaddingTop = UDim.new(0,4), PaddingBottom = UDim.new(0,4), Parent = InputRow })
+
+        local BLInput = New("TextBox", {
+            BackgroundColor3 = "MainColor",
+            PlaceholderText = "Username or UserId...",
+            Size = UDim2.new(1, -52, 1, 0),
+            TextScaled = true,
+            ClearTextOnFocus = false,
+            Parent = InputRow,
+        })
+        table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = BLInput }))
+        New("UIStroke", { Color = "OutlineColor", Parent = BLInput })
+        New("UIPadding", { PaddingLeft = UDim.new(0,8), PaddingRight = UDim.new(0,8), PaddingTop = UDim.new(0,4), PaddingBottom = UDim.new(0,4), Parent = BLInput })
+
+        local BLAddBtn = New("TextButton", {
+            BackgroundColor3 = "AccentColor",
+            Position = UDim2.new(1, -46, 0, 0),
+            Size = UDim2.fromOffset(46, 26),
+            Text = "Add",
+            TextColor3 = Color3.new(1, 1, 1),
+            TextSize = 13,
+            Parent = InputRow,
+        })
+        table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = BLAddBtn }))
+
+        Library:MakeLine(BLFrame, { Position = UDim2.fromOffset(0, 73), Size = UDim2.new(1, 0, 0, 1) })
+
+        local BLList = New("ScrollingFrame", {
+            BackgroundTransparency = 1,
+            Position = UDim2.fromOffset(0, 75),
+            Size = UDim2.new(1, 0, 1, -75),
+            CanvasSize = UDim2.new(0, 0, 0, 0),
+            AutomaticCanvasSize = Enum.AutomaticSize.Y,
+            ScrollBarThickness = 2,
+            Parent = BLFrame,
+        })
+        New("UIListLayout", { Padding = UDim.new(0, 4), Parent = BLList })
+        New("UIPadding", { PaddingBottom=UDim.new(0,7), PaddingLeft=UDim.new(0,7), PaddingRight=UDim.new(0,7), PaddingTop=UDim.new(0,4), Parent = BLList })
+
+        Library.BlacklistPanelFrame  = BLFrame
+        Library.BlacklistPanelInput  = BLInput
+        Library.BlacklistPanelAddBtn = BLAddBtn
+        Library.BlacklistPanelList   = BLList
+    end
+
 
     return Window
 end
@@ -10680,12 +10804,6 @@ local function OnPlayerRemoving(Player)
         local UserId = Player.UserId
         local Entry = { Dropdowns = Affected }
         Library.PlayerRejoinCache[UserId] = Entry
-
-        task.delay(Library.PlayerRejoinExpireSeconds, function()
-            if Library.PlayerRejoinCache[UserId] == Entry then
-                Library.PlayerRejoinCache[UserId] = nil
-            end
-        end)
 
         if ShouldNotify then
             Library:Notify({
