@@ -1517,15 +1517,59 @@ function Library:ResetCursorCross()
     Library.Cursor:ResetCross()
 end
 
+local function UpdateCustomCursorRender()
+    if Library.Unloaded or not Library.ShowCustomCursor or Library.IsMobile or not (ScreenGui and ScreenGui.Parent) then
+        UserInputService.MouseIconEnabled = true
+        if Cursor then Cursor.Visible = false end
+        pcall(function()
+            RunService:UnbindFromRenderStep(Library.ShowCursorBinding)
+        end)
+        Library._CursorBound = false
+        return
+    end
+
+    local isMouseLocked = UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default
+    if isMouseLocked and not Library.Toggled then
+        if Cursor then Cursor.Visible = false end
+        return
+    end
+
+    if Cursor then
+        Cursor.Position = UDim2.fromOffset(Mouse.X, Mouse.Y)
+        Cursor.Visible = true
+    end
+    if UserInputService.MouseIconEnabled then
+        UserInputService.MouseIconEnabled = false
+    end
+end
+
 function Library:SetCustomCursor(enabled: boolean)
     Library.ShowCustomCursor = (enabled == true)
-    if Library.Toggled and not Library.IsMobile then
-        UserInputService.MouseIconEnabled = not Library.ShowCustomCursor
-        if Cursor then
-            Cursor.Visible = Library.ShowCustomCursor
-            Cursor.Position = UDim2.fromOffset(Mouse.X, Mouse.Y)
+    if Library.ShowCustomCursor and not Library.IsMobile and not Library.Unloaded then
+        if not Library._CursorBound then
+            Library._CursorBound = true
+            pcall(function()
+                RunService:UnbindFromRenderStep(Library.ShowCursorBinding)
+            end)
+            RunService:BindToRenderStep(Library.ShowCursorBinding, Enum.RenderPriority.Last.Value, UpdateCustomCursorRender)
+        end
+        local isMouseLocked = UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default
+        if not isMouseLocked or Library.Toggled then
+            UserInputService.MouseIconEnabled = false
+            if Cursor then
+                Cursor.Position = UDim2.fromOffset(Mouse.X, Mouse.Y)
+                Cursor.Visible = true
+            end
+        else
+            if Cursor then Cursor.Visible = false end
         end
     else
+        if Library._CursorBound then
+            pcall(function()
+                RunService:UnbindFromRenderStep(Library.ShowCursorBinding)
+            end)
+            Library._CursorBound = false
+        end
         UserInputService.MouseIconEnabled = true
         if Cursor then
             Cursor.Visible = false
@@ -2322,6 +2366,17 @@ function Library:Unload()
 
     if Library.ActiveLoading then
         Library.ActiveLoading:Destroy()
+    end
+
+    if Library._CursorBound or Library.ShowCustomCursor then
+        pcall(function()
+            RunService:UnbindFromRenderStep(Library.ShowCursorBinding)
+        end)
+        Library._CursorBound = false
+        UserInputService.MouseIconEnabled = true
+        if Cursor then
+            Cursor.Visible = false
+        end
     end
 
     if ScreenGui then
@@ -7256,6 +7311,7 @@ function Library:CreateWindow(WindowInfo)
     Library.CornerRadius = WindowInfo.CornerRadius
     Library:SetNotifySide(WindowInfo.NotifySide)
     Library.ShowCustomCursor = WindowInfo.ShowCustomCursor
+    if WindowInfo.ShowCustomCursor then Library:SetCustomCursor(true) end
     Library.Scheme.Font = WindowInfo.Font
     Library.ToggleKeybind = WindowInfo.ToggleKeybind
     Library.GlobalSearch = WindowInfo.GlobalSearch
@@ -9567,29 +9623,29 @@ function Library:CreateWindow(WindowInfo)
         end
 
         if Library.Toggled and not Library.IsMobile then
-            local OldMouseIconEnabled = UserInputService.MouseIconEnabled
-            local ShowCursorBinding = Library.ShowCursorBinding
-            pcall(function()
-                RunService:UnbindFromRenderStep(ShowCursorBinding)
-            end)
-            RunService:BindToRenderStep(ShowCursorBinding, Enum.RenderPriority.Last.Value, function()
-                UserInputService.MouseIconEnabled = not Library.ShowCustomCursor
-
-                Cursor.Position = UDim2.fromOffset(Mouse.X, Mouse.Y)
-                Cursor.Visible = Library.ShowCustomCursor == true
-
-                if not (Library.Toggled and ScreenGui and ScreenGui.Parent) then
-                    UserInputService.MouseIconEnabled = OldMouseIconEnabled
-                    Cursor.Visible = false
-                    RunService:UnbindFromRenderStep(ShowCursorBinding)
-                end
-            end)
+            if Library.ShowCustomCursor then
+                Library:SetCustomCursor(true)
+            end
         elseif not Library.Toggled then
-            UserInputService.MouseIconEnabled = true
-            if Cursor then Cursor.Visible = false end
-            pcall(function()
-                RunService:UnbindFromRenderStep(Library.ShowCursorBinding)
-            end)
+            if not Library.ShowCustomCursor then
+                UserInputService.MouseIconEnabled = true
+                if Cursor then Cursor.Visible = false end
+                pcall(function()
+                    RunService:UnbindFromRenderStep(Library.ShowCursorBinding)
+                end)
+                Library._CursorBound = false
+            else
+                local isMouseLocked = UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default
+                if isMouseLocked then
+                    if Cursor then Cursor.Visible = false end
+                else
+                    UserInputService.MouseIconEnabled = false
+                    if Cursor then
+                        Cursor.Position = UDim2.fromOffset(Mouse.X, Mouse.Y)
+                        Cursor.Visible = true
+                    end
+                end
+            end
             TooltipLabel.Visible = false
 
             for _, Option in Library.Options do
