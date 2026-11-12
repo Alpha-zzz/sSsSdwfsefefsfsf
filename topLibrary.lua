@@ -1164,9 +1164,24 @@ type IconModule = {
 }
 
 local FetchIcons, Icons = pcall(function()
-    return (loadstring(
-        game:HttpGet("https://gitlab.com/upio/lucide-roblox-direct/-/raw/main/source.lua")
-    ) :: () -> IconModule)()
+    local Urls = {
+        "https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua",
+        "https://raw.githubusercontent.com/mstudio45/lucide-roblox-direct/refs/heads/main/source.lua",
+        "https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/main/source.lua",
+        "https://raw.githubusercontent.com/mstudio45/lucide-roblox-direct/main/source.lua",
+    }
+
+    for _, Url in ipairs(Urls) do
+        local Success, Result = pcall(function()
+            return (loadstring(game:HttpGet(Url)) :: () -> IconModule)()
+        end)
+
+        if Success and typeof(Result) == "table" and Result.GetAsset then
+            return Result
+        end
+    end
+
+    error("Failed to load Lucide Icons from available sources")
 end)
 
 function Library:GetIcon(IconName: string)
