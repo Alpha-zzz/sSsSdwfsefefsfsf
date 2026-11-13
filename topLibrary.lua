@@ -6693,6 +6693,7 @@ function Library:_AddCategoryTab(Name)
 
     local Btn = New("TextButton", {
         BackgroundColor3 = "MainColor",
+        BackgroundTransparency = 1,
         AutomaticSize = Enum.AutomaticSize.X,
         Size = UDim2.fromOffset(0, 22),
         Text = Name,
@@ -6725,10 +6726,12 @@ function Library:_SwitchHistoryTab(CategoryName)
             if Btn:IsA("TextButton") then
                 if Btn.Text == CategoryName or (CategoryName == "All" and Btn.Text == "All") then
                     Btn.TextTransparency = 0
+                    Btn.BackgroundTransparency = 0.75
                     Btn.BackgroundColor3 = Library.Scheme.AccentColor or Color3.fromRGB(100, 160, 255)
                     Library.Registry[Btn] = { BackgroundColor3 = "AccentColor" }
                 else
                     Btn.TextTransparency = 0.4
+                    Btn.BackgroundTransparency = 1
                     Btn.BackgroundColor3 = Library.Scheme.MainColor
                     Library.Registry[Btn] = { BackgroundColor3 = "MainColor" }
                 end
@@ -9905,10 +9908,11 @@ function Library:CreateWindow(WindowInfo)
         -- Cleaned English comment
         local AllTabBtn = New("TextButton", {
             BackgroundColor3 = "AccentColor",
+            BackgroundTransparency = 0.75,
             AutomaticSize = Enum.AutomaticSize.X,
             Size = UDim2.fromOffset(0, 22),
             Text = "All",
-            TextColor3 = Color3.new(1, 1, 1),
+            TextColor3 = "FontColor",
             TextTransparency = 0,
             TextSize = 12,
             Font = Enum.Font.Gotham,
